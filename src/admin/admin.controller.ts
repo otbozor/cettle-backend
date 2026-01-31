@@ -5,6 +5,14 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 
+// Response wrapper
+interface ApiResponse<T> {
+    success: boolean;
+    data?: T;
+    message: string;
+    timestamp: string;
+}
+
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
@@ -14,9 +22,15 @@ export class AdminController {
 
     @Get('dashboard/stats')
     @ApiOperation({ summary: 'Get admin dashboard stats' })
-    async getDashboard(@CurrentUser() user: User) {
-        await this.adminService.requirePermission(user.id, 'admin.access');
-        return this.adminService.getDashboardStats();
+    async getDashboard(@CurrentUser() user: User): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.getDashboardStats();
+        return {
+            success: true,
+            data,
+            message: 'Dashboard stats retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Get('audit-logs')
@@ -25,8 +39,14 @@ export class AdminController {
         @CurrentUser() user: User,
         @Query('page') page?: number,
         @Query('limit') limit?: number,
-    ) {
-        await this.adminService.requirePermission(user.id, 'admin.access');
-        return this.adminService.getAuditLogs(page, limit);
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.getAuditLogs(page, limit);
+        return {
+            success: true,
+            data,
+            message: 'Audit logs retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 }

@@ -6,42 +6,20 @@ import { ListingStatus, Prisma } from '@prisma/client';
 export class AdminService {
     constructor(private prisma: PrismaService) { }
 
-    // Check if user has admin permission
-    async checkPermission(userId: string, permissionKey: string): Promise<boolean> {
+    // Check if user is admin
+    async checkIsAdmin(userId: string): Promise<boolean> {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
-            include: {
-                adminRoles: {
-                    include: {
-                        role: {
-                            include: {
-                                permissions: {
-                                    include: { permission: true },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            select: { isAdmin: true },
         });
 
-        if (!user) return false;
-
-        for (const userRole of user.adminRoles) {
-            for (const rolePermission of userRole.role.permissions) {
-                if (rolePermission.permission.key === permissionKey) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return user?.isAdmin ?? false;
     }
 
-    async requirePermission(userId: string, permissionKey: string): Promise<void> {
-        const hasPermission = await this.checkPermission(userId, permissionKey);
-        if (!hasPermission) {
-            throw new ForbiddenException(`Missing permission: ${permissionKey}`);
+    async requireAdmin(userId: string): Promise<void> {
+        const isAdmin = await this.checkIsAdmin(userId);
+        if (!isAdmin) {
+            throw new ForbiddenException('Admin access required');
         }
     }
 
@@ -97,7 +75,7 @@ export class AdminService {
     }
 
     async approveListing(listingId: string, adminUserId: string) {
-        await this.requirePermission(adminUserId, 'listings.approve');
+        await this.requireAdmin(adminUserId);
 
         const listing = await this.prisma.horseListing.update({
             where: { id: listingId },
@@ -114,7 +92,7 @@ export class AdminService {
     }
 
     async rejectListing(listingId: string, adminUserId: string, reason: string) {
-        await this.requirePermission(adminUserId, 'listings.reject');
+        await this.requireAdmin(adminUserId);
 
         const listing = await this.prisma.horseListing.update({
             where: { id: listingId },
@@ -145,7 +123,6 @@ export class AdminService {
                 take: limit,
                 include: {
                     _count: { select: { listings: true } },
-                    adminRoles: { include: { role: true } },
                 },
             }),
             this.prisma.user.count({ where }),
@@ -158,7 +135,7 @@ export class AdminService {
     }
 
     async banUser(userId: string, adminUserId: string) {
-        await this.requirePermission(adminUserId, 'users.ban');
+        await this.requireAdmin(adminUserId);
 
         await this.prisma.user.update({
             where: { id: userId },
@@ -169,7 +146,7 @@ export class AdminService {
     }
 
     async unbanUser(userId: string, adminUserId: string) {
-        await this.requirePermission(adminUserId, 'users.unban');
+        await this.requireAdmin(adminUserId);
 
         await this.prisma.user.update({
             where: { id: userId },

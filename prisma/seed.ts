@@ -257,199 +257,40 @@ async function main() {
 
     console.log('✅ Breeds seeded');
 
-    // Create admin roles and permissions
-    const permissions = [
-        { key: 'admin.access', description: 'Access admin panel' },
-        { key: 'listings.view', description: 'View all listings' },
-        { key: 'listings.approve', description: 'Approve listings' },
-        { key: 'listings.reject', description: 'Reject listings' },
-        { key: 'listings.edit', description: 'Edit any listing' },
-        { key: 'listings.delete', description: 'Delete listings' },
-        { key: 'users.view', description: 'View users' },
-        { key: 'users.ban', description: 'Ban users' },
-        { key: 'users.unban', description: 'Unban users' },
-        { key: 'blog.manage', description: 'Manage blog posts' },
-        { key: 'events.manage', description: 'Manage events' },
-        { key: 'products.manage', description: 'Manage products' },
-        { key: 'settings.manage', description: 'Manage settings' },
-        { key: 'roles.manage', description: 'Manage roles' },
-    ];
-
-    for (const permission of permissions) {
-        await prisma.permission.upsert({
-            where: { key: permission.key },
-            update: permission,
-            create: permission,
-        });
-    }
-
-    console.log('✅ Permissions seeded');
-
-    // Create roles
-    const superAdminRole = await prisma.adminRole.upsert({
-        where: { name: 'Super Admin' },
-        update: { description: 'Full access to everything' },
-        create: { name: 'Super Admin', description: 'Full access to everything' },
-    });
-
-    const moderatorRole = await prisma.adminRole.upsert({
-        where: { name: 'Moderator' },
-        update: { description: 'Can approve/reject listings' },
-        create: { name: 'Moderator', description: 'Can approve/reject listings' },
-    });
-
-    const contentManagerRole = await prisma.adminRole.upsert({
-        where: { name: 'Content Manager' },
-        update: { description: 'Can manage blog and events' },
-        create: { name: 'Content Manager', description: 'Can manage blog and events' },
-    });
-
-    // Assign all permissions to Super Admin
-    const allPermissions = await prisma.permission.findMany();
-    for (const permission of allPermissions) {
-        await prisma.rolePermission.upsert({
-            where: {
-                roleId_permissionId: {
-                    roleId: superAdminRole.id,
-                    permissionId: permission.id,
-                },
-            },
-            update: {},
-            create: {
-                roleId: superAdminRole.id,
-                permissionId: permission.id,
-            },
-        });
-    }
-
-    // Assign moderator permissions
-    const moderatorPermissions = ['admin.access', 'listings.view', 'listings.approve', 'listings.reject', 'listings.edit'];
-    for (const key of moderatorPermissions) {
-        const permission = await prisma.permission.findUnique({ where: { key } });
-        if (permission) {
-            await prisma.rolePermission.upsert({
-                where: {
-                    roleId_permissionId: {
-                        roleId: moderatorRole.id,
-                        permissionId: permission.id,
-                    },
-                },
-                update: {},
-                create: {
-                    roleId: moderatorRole.id,
-                    permissionId: permission.id,
-                },
-            });
-        }
-    }
-
-    // Assign content manager permissions
-    const contentPermissions = ['admin.access', 'blog.manage', 'events.manage'];
-    for (const key of contentPermissions) {
-        const permission = await prisma.permission.findUnique({ where: { key } });
-        if (permission) {
-            await prisma.rolePermission.upsert({
-                where: {
-                    roleId_permissionId: {
-                        roleId: contentManagerRole.id,
-                        permissionId: permission.id,
-                    },
-                },
-                update: {},
-                create: {
-                    roleId: contentManagerRole.id,
-                    permissionId: permission.id,
-                },
-            });
-        }
-    }
-
-    console.log('✅ Roles and permissions assigned');
-
-    // Create default Super Admin user with username/password
-    console.log('Creating default Super Admin user...');
+    // Create default Admin user with credentials from .env
+    console.log('Creating default Admin user...');
 
     const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash('admin123', 10); // Default password
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-    const defaultSuperAdmin = await prisma.user.upsert({
+    const defaultAdmin = await prisma.user.upsert({
         where: {
-            username: 'superadmin' // Username-based login
+            username: adminUsername
         },
         update: {
-            displayName: 'Super Admin',
+            displayName: 'Admin',
             password: hashedPassword,
+            isAdmin: true,
             isVerified: true,
             status: 'ACTIVE',
         },
         create: {
-            username: 'superadmin',
+            username: adminUsername,
             password: hashedPassword,
-            displayName: 'Super Admin',
+            displayName: 'Admin',
+            isAdmin: true,
             isVerified: true,
             status: 'ACTIVE',
-            // No Telegram ID needed for admin
         },
     });
 
-    // Assign Super Admin role to default user
-    await prisma.adminUserRole.upsert({
-        where: {
-            userId_roleId: {
-                userId: defaultSuperAdmin.id,
-                roleId: superAdminRole.id,
-            },
-        },
-        update: {},
-        create: {
-            userId: defaultSuperAdmin.id,
-            roleId: superAdminRole.id,
-        },
-    });
-
-    console.log('✅ Default Super Admin created');
-    console.log('   🔐 Username: superadmin');
-    console.log('   🔐 Password: admin123');
+    console.log('✅ Default Admin created');
+    console.log(`   🔐 Username: ${adminUsername}`);
+    console.log(`   🔐 Password: ${adminPassword}`);
     console.log('   ⚠️  IMPORTANT: Change password in production!');
     console.log('   📍 Login URL: POST /api/auth/admin/login');
-
-    // Create sample blog categories
-    const blogCategories = [
-        { name: 'Ot parvarishi', slug: 'ot-parvarishi' },
-        { name: 'Ko\'pkari', slug: 'kopkari' },
-        { name: 'Sog\'liq', slug: 'sogliq' },
-        { name: 'Ozuqa', slug: 'ozuqa' },
-        { name: 'Mashg\'ulotlar', slug: 'mashgulotlar' },
-    ];
-
-    for (const category of blogCategories) {
-        await prisma.blogCategory.upsert({
-            where: { slug: category.slug },
-            update: category,
-            create: category,
-        });
-    }
-
-    console.log('✅ Blog categories seeded');
-
-    // Create product categories
-    const productCategories = [
-        { name: 'Egar-jabduqlar', slug: 'egar-jabduqlar' },
-        { name: 'Ozuqa va qo\'shimchalar', slug: 'ozuqa-qoshimchalar' },
-        { name: 'Kiyim-kechak', slug: 'kiyim-kechak' },
-        { name: 'Ot uchun aksessuarlar', slug: 'aksessuarlar' },
-        { name: 'Dori-darmonlar', slug: 'dori-darmonlar' },
-    ];
-
-    for (const category of productCategories) {
-        await prisma.productCategory.upsert({
-            where: { slug: category.slug },
-            update: category,
-            create: category,
-        });
-    }
-
-    console.log('✅ Product categories seeded');
 
     console.log('🎉 Database seeding completed!');
 }

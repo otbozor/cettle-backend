@@ -195,14 +195,13 @@ export class ListingsService {
         });
     }
 
-    async incrementViewCount(id: string, userId?: string, sessionId?: string, ipHash?: string) {
+    async incrementViewCount(id: string, userId?: string, sessionId?: string) {
         // Log view
         await this.prisma.viewLog.create({
             data: {
                 listingId: id,
                 userId,
                 sessionId,
-                ipHash,
             },
         });
 

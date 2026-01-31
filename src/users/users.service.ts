@@ -69,39 +69,17 @@ export class UsersService {
     async getUserWithRoles(id: string) {
         return this.prisma.user.findUnique({
             where: { id },
-            include: {
-                adminRoles: {
-                    include: {
-                        role: {
-                            include: {
-                                permissions: {
-                                    include: {
-                                        permission: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
         });
     }
 
     async hasPermission(userId: string, permissionKey: string): Promise<boolean> {
-        const userWithRoles = await this.getUserWithRoles(userId);
+        const user = await this.getUserWithRoles(userId);
 
-        if (!userWithRoles) {
+        if (!user) {
             return false;
         }
 
-        for (const userRole of userWithRoles.adminRoles) {
-            for (const rolePermission of userRole.role.permissions) {
-                if (rolePermission.permission.key === permissionKey) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        // Only admin users have permissions
+        return user.isAdmin;
     }
 }

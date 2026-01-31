@@ -8,9 +8,6 @@ import { RegionsModule } from './regions/regions.module';
 import { BreedsModule } from './breeds/breeds.module';
 import { ListingsModule } from './listings/listings.module';
 import { MediaModule } from './media/media.module';
-import { BlogModule } from './blog/blog.module';
-import { EventsModule } from './events/events.module';
-import { ProductsModule } from './products/products.module';
 import { AdminModule } from './admin/admin.module';
 import { TelegramModule } from './telegram/telegram.module';
 
@@ -38,9 +35,6 @@ import { TelegramModule } from './telegram/telegram.module';
         BreedsModule,
         ListingsModule,
         MediaModule,
-        BlogModule,
-        EventsModule,
-        ProductsModule,
         AdminModule,
 
         // Telegram Bot

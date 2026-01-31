@@ -35,11 +35,6 @@ export class AuthService {
     async adminLogin(dto: AdminLoginDto): Promise<TokenPair> {
         const user = await this.prisma.user.findUnique({
             where: { username: dto.username },
-            include: {
-                adminRoles: {
-                    include: { role: true },
-                },
-            },
         });
 
         if (!user || !user.password) {
@@ -51,12 +46,8 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        // Check if user has admin role
-        const isSuperAdmin = user.adminRoles.some(
-            (ur) => ur.role.name === 'Super Admin'
-        );
-
-        if (!isSuperAdmin) {
+        // Check if user is admin
+        if (!user.isAdmin) {
             throw new UnauthorizedException('Admin access required');
         }
 
@@ -89,13 +80,11 @@ export class AuthService {
         return { botDeepLink, sessionId };
     }
 
-    // Get user admin roles
-    async getUserAdminRoles(userId: string) {
-        const userRoles = await this.prisma.adminUserRole.findMany({
-            where: { userId },
-            include: { role: true },
+    // Get user by username
+    async getUserByUsername(username: string) {
+        return this.prisma.user.findUnique({
+            where: { username },
         });
-        return userRoles;
     }
 
     // Handle callback from Telegram bot
@@ -103,12 +92,17 @@ export class AuthService {
         const session = this.pendingSessions.get(dto.sessionId);
 
         if (!session) {
-            return { success: false, error: 'Session not found' };
+            return { success: false, error: 'Session expired or not found. Please start authentication again.' };
         }
 
         // Phone number is required
         if (!dto.phone) {
-            return { success: false, error: 'Phone number is required' };
+            return { success: false, error: 'Phone number is required for registration' };
+        }
+
+        // Validate phone number format
+        if (!/^\+?[1-9]\d{1,14}$/.test(dto.phone)) {
+            return { success: false, error: 'Invalid phone number format' };
         }
 
         // Check if phone number already exists for a different Telegram user
@@ -124,7 +118,7 @@ export class AuthService {
         if (existingUserWithPhone) {
             return {
                 success: false,
-                error: 'Phone number already registered to another account'
+                error: 'This phone number is already registered. Please use a different phone number or login with your existing account.'
             };
         }
 
@@ -134,20 +128,23 @@ export class AuthService {
         });
 
         if (!user) {
+            // New user registration
             user = await this.prisma.user.create({
                 data: {
                     telegramUserId: BigInt(dto.telegramUserId),
-                    telegramUsername: dto.telegramUsername,
-                    displayName: dto.displayName || dto.telegramUsername || `User${dto.telegramUserId}`,
+                    telegramUsername: dto.telegramUsername || `user_${dto.telegramUserId}`,
+                    displayName: dto.displayName || dto.telegramUsername || `User ${dto.telegramUserId}`,
                     phone: dto.phone,
                     isVerified: true, // Auto-verify since phone is from Telegram
+                    status: 'ACTIVE',
                 },
             });
         } else {
+            // Existing user login
             user = await this.prisma.user.update({
                 where: { id: user.id },
                 data: {
-                    telegramUsername: dto.telegramUsername,
+                    telegramUsername: dto.telegramUsername || user.telegramUsername,
                     phone: dto.phone,
                     isVerified: true,
                     lastLoginAt: new Date(),
@@ -155,19 +152,23 @@ export class AuthService {
             });
         }
 
-        // Generate one-time code
+        // Generate one-time code (valid for 5 minutes)
         const code = uuidv4().substring(0, 8).toUpperCase();
+        const codeExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-        // Store code with user ID (in production, use Redis)
+        // Store code with user ID and expiry
         this.pendingSessions.set(`code:${code}`, {
             returnUrl: user.id, // Using returnUrl field to store userId
-            createdAt: new Date(),
+            createdAt: codeExpiry,
         });
 
         // Remove original session
         this.pendingSessions.delete(dto.sessionId);
 
-        return { success: true, code };
+        return { 
+            success: true, 
+            code,
+        };
     }
 
     // Verify code and issue tokens
@@ -175,6 +176,12 @@ export class AuthService {
         const session = this.pendingSessions.get(`code:${code}`);
 
         if (!session) {
+            return null;
+        }
+
+        // Check if code has expired (createdAt field stores expiry time)
+        if (new Date() > session.createdAt) {
+            this.pendingSessions.delete(`code:${code}`);
             return null;
         }
 
@@ -188,6 +195,12 @@ export class AuthService {
         if (!user) {
             return null;
         }
+
+        // Update last login
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+        });
 
         return this.generateTokens(user.id, user.telegramUserId);
     }

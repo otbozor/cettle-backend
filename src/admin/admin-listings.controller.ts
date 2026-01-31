@@ -5,6 +5,14 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 
+// Response wrapper
+interface ApiResponse<T> {
+    success: boolean;
+    data?: T;
+    message: string;
+    timestamp: string;
+}
+
 @ApiTags('Admin Listings')
 @Controller('admin/listings')
 @UseGuards(JwtAuthGuard)
@@ -18,9 +26,15 @@ export class AdminListingsController {
         @CurrentUser() user: User,
         @Query('page') page?: number,
         @Query('limit') limit?: number,
-    ) {
-        await this.adminService.requirePermission(user.id, 'listings.view');
-        return this.adminService.getPendingListings(page, limit);
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.getPendingListings(page, limit);
+        return {
+            success: true,
+            data,
+            message: 'Pending listings retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Post(':id/approve')
@@ -28,8 +42,15 @@ export class AdminListingsController {
     async approveListing(
         @CurrentUser() user: User,
         @Param('id') id: string,
-    ) {
-        return this.adminService.approveListing(id, user.id);
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.approveListing(id, user.id);
+        return {
+            success: true,
+            data,
+            message: 'Listing approved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Post(':id/reject')
@@ -38,7 +59,14 @@ export class AdminListingsController {
         @CurrentUser() user: User,
         @Param('id') id: string,
         @Body() body: { reason: string },
-    ) {
-        return this.adminService.rejectListing(id, user.id, body.reason);
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.rejectListing(id, user.id, body.reason);
+        return {
+            success: true,
+            data,
+            message: 'Listing rejected successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 }

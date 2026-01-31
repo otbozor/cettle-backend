@@ -17,6 +17,14 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 
+// Response wrapper
+interface ApiResponse<T> {
+    success: boolean;
+    data?: T;
+    message: string;
+    timestamp: string;
+}
+
 @ApiTags('Listings')
 @Controller('listings')
 export class ListingsController {
@@ -26,23 +34,35 @@ export class ListingsController {
     @Public()
     @ApiOperation({ summary: 'Get all approved listings with filters' })
     @ApiResponse({ status: 200, description: 'Returns paginated listings' })
-    async findAll(@Query() filter: ListingsFilterDto) {
-        return this.listingsService.findAll(filter);
+    async findAll(@Query() filter: ListingsFilterDto): Promise<ApiResponse<any>> {
+        const data = await this.listingsService.findAll(filter);
+        return {
+            success: true,
+            data,
+            message: 'Listings retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Get('featured')
     @Public()
     @ApiOperation({ summary: 'Get featured listings for homepage' })
     @ApiResponse({ status: 200, description: 'Returns featured listings' })
-    async getFeatured(@Query('limit') limit?: number) {
-        return this.listingsService.getFeatured(limit);
+    async getFeatured(@Query('limit') limit?: number): Promise<ApiResponse<any>> {
+        const data = await this.listingsService.getFeatured(limit);
+        return {
+            success: true,
+            data,
+            message: 'Featured listings retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Get(':id')
     @Public()
     @ApiOperation({ summary: 'Get listing by ID' })
     @ApiResponse({ status: 200, description: 'Returns listing details' })
-    async findById(@Param('id') id: string, @Req() req: Request) {
+    async findById(@Param('id') id: string, @Req() req: Request): Promise<ApiResponse<any>> {
         const listing = await this.listingsService.findById(id);
 
         // Track view asynchronously
@@ -52,18 +72,28 @@ export class ListingsController {
             id,
             user?.id,
             sessionId,
-            req.ip,
         ).catch(() => { });
 
-        return listing;
+        return {
+            success: true,
+            data: listing,
+            message: 'Listing retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Get(':id/similar')
     @Public()
     @ApiOperation({ summary: 'Get similar listings' })
     @ApiResponse({ status: 200, description: 'Returns similar listings' })
-    async findSimilar(@Param('id') id: string) {
-        return this.listingsService.findSimilar(id);
+    async findSimilar(@Param('id') id: string): Promise<ApiResponse<any>> {
+        const data = await this.listingsService.findSimilar(id);
+        return {
+            success: true,
+            data,
+            message: 'Similar listings retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Post(':id/favorite')
@@ -73,9 +103,13 @@ export class ListingsController {
     async addToFavorites(
         @Param('id') id: string,
         @CurrentUser() user: User,
-    ) {
+    ): Promise<ApiResponse<null>> {
         await this.listingsService.addToFavorites(user.id, id);
-        return { success: true };
+        return {
+            success: true,
+            message: 'Added to favorites successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Delete(':id/favorite')
@@ -85,9 +119,13 @@ export class ListingsController {
     async removeFromFavorites(
         @Param('id') id: string,
         @CurrentUser() user: User,
-    ) {
+    ): Promise<ApiResponse<null>> {
         await this.listingsService.removeFromFavorites(user.id, id);
-        return { success: true };
+        return {
+            success: true,
+            message: 'Removed from favorites successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Get(':id/is-favorite')
@@ -96,8 +134,13 @@ export class ListingsController {
     async isFavorite(
         @Param('id') id: string,
         @CurrentUser() user: User,
-    ) {
+    ): Promise<ApiResponse<{ isFavorite: boolean }>> {
         const isFav = await this.listingsService.isFavorite(user.id, id);
-        return { isFavorite: isFav };
+        return {
+            success: true,
+            data: { isFavorite: isFav },
+            message: 'Favorite status retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 }
