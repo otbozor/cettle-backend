@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListingStatus, Prisma } from '@prisma/client';
 
@@ -74,6 +74,35 @@ export class AdminService {
         };
     }
 
+    async getListingById(listingId: string) {
+        const listing = await this.prisma.horseListing.findUnique({
+            where: { id: listingId },
+            include: {
+                region: true,
+                district: true,
+                breed: true,
+                user: {
+                    select: {
+                        id: true,
+                        displayName: true,
+                        telegramUsername: true,
+                        isVerified: true,
+                        avatarUrl: true,
+                    },
+                },
+                media: {
+                    orderBy: { sortOrder: 'asc' },
+                },
+            },
+        });
+
+        if (!listing) {
+            throw new NotFoundException('Listing not found');
+        }
+
+        return listing;
+    }
+
     async approveListing(listingId: string, adminUserId: string) {
         await this.requireAdmin(adminUserId);
 
@@ -121,15 +150,34 @@ export class AdminService {
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit,
-                include: {
+                select: {
+                    id: true,
+                    telegramUserId: true,
+                    telegramUsername: true,
+                    phone: true,
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                    isVerified: true,
+                    isAdmin: true,
+                    status: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    lastLoginAt: true,
                     _count: { select: { listings: true } },
                 },
             }),
             this.prisma.user.count({ where }),
         ]);
 
+        // Convert BigInt to string for JSON serialization
+        const serializedUsers = users.map(user => ({
+            ...user,
+            telegramUserId: user.telegramUserId ? user.telegramUserId.toString() : null,
+        }));
+
         return {
-            data: users,
+            data: serializedUsers,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         };
     }

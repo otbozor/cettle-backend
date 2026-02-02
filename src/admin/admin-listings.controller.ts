@@ -37,6 +37,22 @@ export class AdminListingsController {
         };
     }
 
+    @Get(':id')
+    @ApiOperation({ summary: 'Get listing by ID (admin - any status)' })
+    async getListingById(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.getListingById(id);
+        return {
+            success: true,
+            data,
+            message: 'Listing retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
+    }
+
     @Post(':id/approve')
     @ApiOperation({ summary: 'Approve a listing' })
     async approveListing(

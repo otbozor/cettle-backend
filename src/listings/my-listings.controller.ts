@@ -47,7 +47,13 @@ export class MyListingsController {
         @CurrentUser() user: User,
         @Body() dto: CreateListingDto,
     ) {
-        return this.listingsService.createDraft(user.id, dto);
+        const listing = await this.listingsService.createDraft(user.id, dto);
+        return {
+            success: true,
+            data: listing,
+            message: 'Draft created successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Patch(':id')
@@ -58,7 +64,13 @@ export class MyListingsController {
         @Param('id') id: string,
         @Body() dto: UpdateListingDto,
     ) {
-        return this.listingsService.updateDraft(user.id, id, dto);
+        const listing = await this.listingsService.updateDraft(user.id, id, dto);
+        return {
+            success: true,
+            data: listing,
+            message: 'Draft updated successfully',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Post(':id/submit')
@@ -68,7 +80,13 @@ export class MyListingsController {
         @CurrentUser() user: User,
         @Param('id') id: string,
     ) {
-        return this.listingsService.submitForReview(user.id, id);
+        const listing = await this.listingsService.submitForReview(user.id, id);
+        return {
+            success: true,
+            data: listing,
+            message: 'Listing submitted for review',
+            timestamp: new Date().toISOString(),
+        };
     }
 
     @Delete(':id')

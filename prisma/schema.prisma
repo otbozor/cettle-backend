@@ -73,6 +73,7 @@ model Region {
   
   districts District[]
   listings  HorseListing[]
+  events    Event[]
 
   @@map("regions")
 }
@@ -86,6 +87,7 @@ model District {
 
   region   Region  @relation(fields: [regionId], references: [id], onDelete: Cascade)
   listings HorseListing[]
+  events   Event[]
 
   @@index([regionId])
   @@map("districts")
@@ -234,6 +236,88 @@ model ViewLog {
   @@index([listingId])
   @@index([userId])
   @@map("view_logs")
+}
+
+// ============================================
+// EVENTS (KOPKARI)
+// ============================================
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+model Event {
+  id              String      @id @default(uuid())
+  title           String
+  slug            String      @unique
+  description     String?     @db.Text
+  
+  regionId        String      @map("region_id")
+  districtId      String?     @map("district_id")
+  addressText     String?     @map("address_text")
+  mapUrl          String?     @map("map_url")
+  
+  startsAt        DateTime    @map("starts_at")
+  endsAt          DateTime?   @map("ends_at")
+  
+  organizerName   String      @map("organizer_name")
+  contactPhone    String?     @map("contact_phone")
+  contactTelegram String?     @map("contact_telegram")
+  
+  prizePool       Decimal?    @map("prize_pool") @db.Decimal(15, 2)
+  prizeCurrency   Currency    @default(UZS) @map("prize_currency")
+  rules           String?     @db.Text
+  
+  status          EventStatus @default(DRAFT)
+  viewCount       Int         @default(0) @map("view_count")
+  
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  publishedAt     DateTime?   @map("published_at")
+
+  // Relations
+  region          Region      @relation(fields: [regionId], references: [id])
+  district        District?   @relation(fields: [districtId], references: [id])
+
+  @@index([regionId])
+  @@index([status])
+  @@index([startsAt])
+  @@map("events")
+}
+
+// ============================================
+// BLOG
+// ============================================
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model BlogPost {
+  id            String         @id @default(uuid())
+  title         String
+  slug          String         @unique
+  excerpt       String?
+  content       String         @db.Text
+  coverImage    String?        @map("cover_image")
+  
+  authorId      String         @map("author_id")
+  
+  status        BlogPostStatus @default(DRAFT)
+  viewCount     Int            @default(0) @map("view_count")
+  
+  publishedAt   DateTime?      @map("published_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([publishedAt])
+  @@map("blog_posts")
 }
 
 // ============================================

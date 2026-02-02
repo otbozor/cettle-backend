@@ -10,6 +10,8 @@ import { ListingsModule } from './listings/listings.module';
 import { MediaModule } from './media/media.module';
 import { AdminModule } from './admin/admin.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { EventsModule } from './events/events.module';
+import { BlogModule } from './blog/blog.module';
 
 @Module({
     imports: [
@@ -39,6 +41,10 @@ import { TelegramModule } from './telegram/telegram.module';
 
         // Telegram Bot
         TelegramModule,
+
+        // Events & Blog
+        EventsModule,
+        BlogModule,
     ],
 })
 export class AppModule { }
