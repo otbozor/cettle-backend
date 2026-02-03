@@ -1,6 +1,7 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListingStatus, Prisma } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
@@ -242,5 +243,39 @@ export class AdminService {
             data: logs,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         };
+    }
+
+    // Change admin password
+    async changeAdminPassword(userId: string, currentPassword: string, newPassword: string) {
+        await this.requireAdmin(userId);
+
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { password: true },
+        });
+
+        if (!user || !user.password) {
+            throw new UnauthorizedException('Invalid user');
+        }
+
+        // Verify current password
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Current password is incorrect');
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword },
+        });
+
+        // Log action
+        await this.createAuditLog(userId, 'admin.password_changed', 'User', userId);
+
+        return { message: 'Password changed successfully' };
     }
 }

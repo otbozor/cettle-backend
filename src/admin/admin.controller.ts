@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -94,6 +94,21 @@ export class AdminController {
             success: true,
             data,
             message: 'Audit logs retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
+    }
+
+    @Post('change-password')
+    @ApiOperation({ summary: 'Change admin password' })
+    async changePassword(
+        @CurrentUser() user: User,
+        @Body() body: { currentPassword: string; newPassword: string },
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        await this.adminService.changeAdminPassword(user.id, body.currentPassword, body.newPassword);
+        return {
+            success: true,
+            message: 'Password changed successfully',
             timestamp: new Date().toISOString(),
         };
     }
