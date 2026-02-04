@@ -118,6 +118,7 @@ export class ListingsService {
                         telegramUsername: true,
                         isVerified: true,
                         avatarUrl: true,
+                        createdAt: true,
                     },
                 },
                 media: {
@@ -147,6 +148,7 @@ export class ListingsService {
                         telegramUsername: true,
                         isVerified: true,
                         avatarUrl: true,
+                        createdAt: true,
                     },
                 },
                 media: {

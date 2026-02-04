@@ -60,16 +60,21 @@ export class ListingsController {
 
     @Get(':id')
     @Public()
-    @ApiOperation({ summary: 'Get listing by ID' })
+    @ApiOperation({ summary: 'Get listing by ID or slug' })
     @ApiResponse({ status: 200, description: 'Returns listing details' })
-    async findById(@Param('id') id: string, @Req() req: Request): Promise<ApiResponse<any>> {
-        const listing = await this.listingsService.findById(id);
+    async findById(@Param('id') idOrSlug: string, @Req() req: Request): Promise<ApiResponse<any>> {
+        // Try to find by ID first, then by slug
+        let listing = await this.listingsService.findById(idOrSlug).catch(() => null);
+
+        if (!listing) {
+            listing = await this.listingsService.findBySlug(idOrSlug);
+        }
 
         // Track view asynchronously
         const user = req.user as User | undefined;
         const sessionId = req.cookies?.sessionId;
         this.listingsService.incrementViewCount(
-            id,
+            listing.id,
             user?.id,
             sessionId,
         ).catch(() => { });
