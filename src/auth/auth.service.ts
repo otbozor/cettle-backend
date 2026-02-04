@@ -165,8 +165,8 @@ export class AuthService {
         // Remove original session
         this.pendingSessions.delete(dto.sessionId);
 
-        return { 
-            success: true, 
+        return {
+            success: true,
             code,
         };
     }
@@ -295,19 +295,23 @@ export class AuthService {
 
     // Set cookies on response
     setTokenCookies(res: Response, tokens: TokenPair): void {
+        const isProduction = process.env.NODE_ENV === 'production';
+
         res.cookie('accessToken', tokens.accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-domain in production
             maxAge: 15 * 60 * 1000, // 15 minutes
+            domain: isProduction ? undefined : undefined, // Let browser handle domain
         });
 
         res.cookie('refreshToken', tokens.refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
             path: '/api/auth/refresh',
+            domain: isProduction ? undefined : undefined,
         });
     }
 
