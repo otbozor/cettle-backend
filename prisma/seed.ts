@@ -263,34 +263,33 @@ async function main() {
     const bcrypt = require('bcrypt');
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-    const defaultAdmin = await prisma.user.upsert({
-        where: {
-            username: adminUsername
-        },
-        update: {
-            displayName: 'Admin',
-            password: hashedPassword,
-            isAdmin: true,
-            isVerified: true,
-            status: 'ACTIVE',
-        },
-        create: {
-            username: adminUsername,
-            password: hashedPassword,
-            displayName: 'Admin',
-            isAdmin: true,
-            isVerified: true,
-            status: 'ACTIVE',
-        },
+    // Skip if admin already exists
+    const existingAdmin = await prisma.user.findUnique({
+        where: { username: adminUsername }
     });
 
-    console.log('✅ Default Admin created');
-    console.log(`   🔐 Username: ${adminUsername}`);
-    console.log(`   🔐 Password: ${adminPassword}`);
-    console.log('   ⚠️  IMPORTANT: Change password in production!');
-    console.log('   📍 Login URL: POST /api/auth/admin/login');
+    if (existingAdmin) {
+        console.log('✅ Admin user already exists, skipping...');
+    } else {
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+        const defaultAdmin = await prisma.user.create({
+            data: {
+                username: adminUsername,
+                password: hashedPassword,
+                displayName: 'Admin',
+                isAdmin: true,
+                isVerified: true,
+                status: 'ACTIVE',
+            },
+        });
+
+        console.log('✅ Default Admin created');
+        console.log(`   🔐 Username: ${adminUsername}`);
+        console.log(`   🔐 Password: ${adminPassword}`);
+        console.log('   ⚠️  IMPORTANT: Change password in production!');
+    }
 
     console.log('🎉 Database seeding completed!');
 }

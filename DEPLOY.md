@@ -16,12 +16,14 @@
 - **Environment**: `Node`
 - **Build Command**: 
   ```bash
-  npm ci && npm run build && npx prisma migrate deploy
+  npm ci && npm run build && npx prisma migrate deploy && npm run prisma:seed
   ```
 - **Start Command**: 
   ```bash
   npm run start:prod
   ```
+
+**Eslatma:** Build command'da `npm run prisma:seed` qo'shilgan - bu seed ma'lumotlarini avtomatik yuklaydi.
 
 ### Environment Variables:
 
@@ -36,6 +38,10 @@ JWT_SECRET=<random-secret-key-32-characters>
 JWT_REFRESH_SECRET=<random-secret-key-32-characters>
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
+
+# Admin User (Seed uchun)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<kuchli-parol-kiriting>
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=<your-telegram-bot-token>
@@ -67,31 +73,33 @@ Database yaratilgandan keyin:
 2. Render avtomatik build va deploy qiladi
 3. Deploy tugagach, URL paydo bo'ladi: `https://otbozor-api.onrender.com`
 
-## 5. Prisma Migration
+## 5. Prisma Migration va Seed
 
-Birinchi deploy'dan keyin:
+Deploy jarayonida avtomatik bajariladi:
 
 ```bash
-# Local'dan migration'larni deploy qiling
-npx prisma migrate deploy
+# Build command'da:
+npm ci && npm run build && npx prisma migrate deploy && npm run prisma:seed
 ```
 
-Yoki Render Shell'dan:
-1. Service → **Shell** tab
-2. Quyidagi commandni bajaring:
-```bash
-npx prisma migrate deploy
-```
+Bu quyidagilarni bajaradi:
+1. ✅ Database schema yaratadi (migration)
+2. ✅ 14 ta viloyat va 100+ tuman qo'shadi
+3. ✅ 11 ta ot zoti qo'shadi
+4. ✅ Admin user yaratadi
 
-## 6. Seed Data (ixtiyoriy)
+**Seed ma'lumotlari:**
+- Regions: Toshkent, Samarqand, Buxoro, Farg'ona, va boshqalar
+- Districts: Har bir viloyat uchun tumanlar
+- Breeds: Karabayir, Qorabo'g'oz, Lokayi, Arab, va boshqalar
+- Admin: Username va password environment variable'dan olinadi
 
-Agar boshlang'ich ma'lumotlar kerak bo'lsa:
-
+Agar seed qayta ishlatish kerak bo'lsa, Render Shell'dan:
 ```bash
 npm run prisma:seed
 ```
 
-## 7. Frontend'ni yangilash
+## 6. Frontend'ni yangilash
 
 Frontend `.env.local` faylida:
 
@@ -99,7 +107,7 @@ Frontend `.env.local` faylida:
 NEXT_PUBLIC_API_URL=https://otbozor-api.onrender.com
 ```
 
-## 8. CORS sozlash
+## 7. CORS sozlash
 
 Backend `main.ts` da CORS sozlamalari:
 
