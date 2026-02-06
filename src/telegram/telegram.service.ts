@@ -46,6 +46,13 @@ export class TelegramBotService {
             const telegramUsername = ctx.from?.username;
             const displayName = ctx.from?.first_name + (ctx.from?.last_name ? ` ${ctx.from.last_name}` : '');
 
+            console.log('🚀 Telegram auth started:', {
+                sessionId,
+                telegramUserId,
+                telegramUsername,
+                displayName
+            });
+
             if (!telegramUserId) {
                 await ctx.reply('❌ Xatolik: Telegram ma\'lumotlaringizni ololmadik.');
                 return;
@@ -59,6 +66,8 @@ export class TelegramBotService {
                 telegramUsername,
                 displayName,
             });
+
+            console.log('✅ User state saved:', telegramUserId);
 
             // Ask for phone number with contact button
             await ctx.reply(
@@ -77,7 +86,8 @@ export class TelegramBotService {
                 }
             );
         } catch (error) {
-            console.error('Telegram bot start error:', error);
+            console.error('❌ Telegram bot start error:', error);
+            console.error('Error stack:', error.stack);
             await ctx.reply('❌ Tizimda xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring.');
         }
     }
@@ -118,6 +128,12 @@ export class TelegramBotService {
             // Format phone number (add + if missing)
             const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
 
+            console.log('📱 Processing contact:', {
+                telegramUserId,
+                phone: formattedPhone,
+                sessionId: userState.sessionId
+            });
+
             // Call backend callback to generate code
             const result = await this.authService.handleTelegramCallback({
                 sessionId: userState.sessionId,
@@ -126,6 +142,8 @@ export class TelegramBotService {
                 displayName: userState.displayName,
                 phone: formattedPhone,
             });
+
+            console.log('✅ Auth callback result:', result);
 
             if (result.success && result.code) {
                 // Update state
@@ -148,11 +166,20 @@ export class TelegramBotService {
                     this.userStates.delete(telegramUserId);
                 }, 10 * 60 * 1000);
             } else {
-                await ctx.reply('❌ Xatolik yuz berdi. Veb saytdan qaytadan urinib ko\'ring.');
+                console.error('❌ Auth callback failed:', result.error);
+                await ctx.reply(
+                    '❌ Xatolik yuz berdi.\n\n' +
+                    `Sabab: ${result.error || 'Noma\'lum xatolik'}\n\n` +
+                    'Veb saytdan qaytadan urinib ko\'ring.'
+                );
             }
         } catch (error) {
-            console.error('Telegram bot contact error:', error);
-            await ctx.reply('❌ Tizimda xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring.');
+            console.error('❌ Telegram bot contact error:', error);
+            console.error('Error stack:', error.stack);
+            await ctx.reply(
+                '❌ Tizimda xatolik yuz berdi.\n\n' +
+                'Iltimos, qaytadan urinib ko\'ring yoki qo\'llab-quvvatlash xizmatiga murojaat qiling.'
+            );
         }
     }
 

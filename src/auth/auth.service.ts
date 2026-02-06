@@ -89,86 +89,109 @@ export class AuthService {
 
     // Handle callback from Telegram bot
     async handleTelegramCallback(dto: TelegramCallbackDto): Promise<{ success: boolean; code?: string; error?: string }> {
-        const session = this.pendingSessions.get(dto.sessionId);
+        try {
+            console.log('📞 Telegram callback received:', {
+                sessionId: dto.sessionId,
+                telegramUserId: dto.telegramUserId,
+                phone: dto.phone
+            });
 
-        if (!session) {
-            return { success: false, error: 'Session expired or not found. Please start authentication again.' };
-        }
+            const session = this.pendingSessions.get(dto.sessionId);
 
-        // Phone number is required
-        if (!dto.phone) {
-            return { success: false, error: 'Phone number is required for registration' };
-        }
+            if (!session) {
+                console.error('❌ Session not found:', dto.sessionId);
+                return { success: false, error: 'Session expired or not found. Please start authentication again.' };
+            }
 
-        // Validate phone number format
-        if (!/^\+?[1-9]\d{1,14}$/.test(dto.phone)) {
-            return { success: false, error: 'Invalid phone number format' };
-        }
+            // Phone number is required
+            if (!dto.phone) {
+                console.error('❌ Phone number missing');
+                return { success: false, error: 'Phone number is required for registration' };
+            }
 
-        // Check if phone number already exists for a different Telegram user
-        const existingUserWithPhone = await this.prisma.user.findFirst({
-            where: {
-                phone: dto.phone,
-                NOT: {
-                    telegramUserId: BigInt(dto.telegramUserId)
-                }
-            },
-        });
+            // Validate phone number format
+            if (!/^\+?[1-9]\d{1,14}$/.test(dto.phone)) {
+                console.error('❌ Invalid phone format:', dto.phone);
+                return { success: false, error: 'Invalid phone number format' };
+            }
 
-        if (existingUserWithPhone) {
+            // Check if phone number already exists for a different Telegram user
+            const existingUserWithPhone = await this.prisma.user.findFirst({
+                where: {
+                    phone: dto.phone,
+                    NOT: {
+                        telegramUserId: BigInt(dto.telegramUserId)
+                    }
+                },
+            });
+
+            if (existingUserWithPhone) {
+                console.error('❌ Phone already registered:', dto.phone);
+                return {
+                    success: false,
+                    error: 'This phone number is already registered. Please use a different phone number or login with your existing account.'
+                };
+            }
+
+            // Create or update user
+            let user = await this.prisma.user.findUnique({
+                where: { telegramUserId: BigInt(dto.telegramUserId) },
+            });
+
+            if (!user) {
+                // New user registration
+                console.log('✅ Creating new user:', dto.telegramUserId);
+                user = await this.prisma.user.create({
+                    data: {
+                        telegramUserId: BigInt(dto.telegramUserId),
+                        telegramUsername: dto.telegramUsername || `user_${dto.telegramUserId}`,
+                        displayName: dto.displayName || dto.telegramUsername || `User ${dto.telegramUserId}`,
+                        phone: dto.phone,
+                        isVerified: true, // Auto-verify since phone is from Telegram
+                        status: 'ACTIVE',
+                    },
+                });
+            } else {
+                // Existing user login
+                console.log('✅ Updating existing user:', user.id);
+                user = await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        telegramUsername: dto.telegramUsername || user.telegramUsername,
+                        phone: dto.phone,
+                        isVerified: true,
+                        lastLoginAt: new Date(),
+                    },
+                });
+            }
+
+            // Generate one-time code (valid for 5 minutes)
+            const code = uuidv4().substring(0, 8).toUpperCase();
+            const codeExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+            // Store code with user ID and expiry
+            this.pendingSessions.set(`code:${code}`, {
+                returnUrl: user.id, // Using returnUrl field to store userId
+                createdAt: codeExpiry,
+            });
+
+            // Remove original session
+            this.pendingSessions.delete(dto.sessionId);
+
+            console.log('✅ Code generated:', code);
+
+            return {
+                success: true,
+                code,
+            };
+        } catch (error) {
+            console.error('❌ Telegram callback error:', error);
+            console.error('Error stack:', error.stack);
             return {
                 success: false,
-                error: 'This phone number is already registered. Please use a different phone number or login with your existing account.'
+                error: `Database error: ${error.message}`
             };
         }
-
-        // Create or update user
-        let user = await this.prisma.user.findUnique({
-            where: { telegramUserId: BigInt(dto.telegramUserId) },
-        });
-
-        if (!user) {
-            // New user registration
-            user = await this.prisma.user.create({
-                data: {
-                    telegramUserId: BigInt(dto.telegramUserId),
-                    telegramUsername: dto.telegramUsername || `user_${dto.telegramUserId}`,
-                    displayName: dto.displayName || dto.telegramUsername || `User ${dto.telegramUserId}`,
-                    phone: dto.phone,
-                    isVerified: true, // Auto-verify since phone is from Telegram
-                    status: 'ACTIVE',
-                },
-            });
-        } else {
-            // Existing user login
-            user = await this.prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    telegramUsername: dto.telegramUsername || user.telegramUsername,
-                    phone: dto.phone,
-                    isVerified: true,
-                    lastLoginAt: new Date(),
-                },
-            });
-        }
-
-        // Generate one-time code (valid for 5 minutes)
-        const code = uuidv4().substring(0, 8).toUpperCase();
-        const codeExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-        // Store code with user ID and expiry
-        this.pendingSessions.set(`code:${code}`, {
-            returnUrl: user.id, // Using returnUrl field to store userId
-            createdAt: codeExpiry,
-        });
-
-        // Remove original session
-        this.pendingSessions.delete(dto.sessionId);
-
-        return {
-            success: true,
-            code,
-        };
     }
 
     // Verify code and issue tokens
