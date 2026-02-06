@@ -21,8 +21,12 @@ async function bootstrap() {
         'http://localhost:3000',
         'http://localhost:3001',
         'https://horse-frontend-khaki.vercel.app',
+        'https://horse-frontend-black.vercel.app',
         process.env.APP_URL,
+        process.env.CORS_ORIGIN,
     ].filter(Boolean);
+
+    console.log('🔒 CORS allowed origins:', allowedOrigins);
 
     app.enableCors({
         origin: (origin, callback) => {
@@ -66,29 +70,22 @@ async function bootstrap() {
     // API prefix
     app.setGlobalPrefix('api');
 
-    // Swagger - Production'da ham ishlaydi (agar ENABLE_SWAGGER=true bo'lsa)
-    const enableSwagger = process.env.ENABLE_SWAGGER === 'true' || process.env.NODE_ENV !== 'production';
-
-    if (enableSwagger) {
-        const config = new DocumentBuilder()
-            .setTitle('Otbozor API')
-            .setDescription("O'zbekiston Ot Savdo Platformasi API")
-            .setVersion('1.0')
-            .addBearerAuth()
-            .addCookieAuth('accessToken')
-            .build();
-        const document = SwaggerModule.createDocument(app, config);
-        SwaggerModule.setup('docs', app, document);
-
-
-        console.log(`📚 Swagger docs available at: /api/docs`);
-    }
+    // Swagger - Har doim yoqilgan (dev va prod'da)
+    const config = new DocumentBuilder()
+        .setTitle('Otbozor API')
+        .setDescription("O'zbekiston Ot Savdo Platformasi API")
+        .setVersion('1.0')
+        .addBearerAuth()
+        .addCookieAuth('accessToken')
+        .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
 
     const port = process.env.PORT || 5000;
     await app.listen(port);
-    console.log(`Otbozor API running on http://localhost:${port}`);
-    console.log(`Swagger docs: http://localhost:${port}/api/docs`);
-    console.log(`Uploads: http://localhost:${port}/uploads`);
+    console.log(`🚀 Otbozor API running on http://localhost:${port}`);
+    console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
+    console.log(`📁 Uploads: http://localhost:${port}/uploads`);
 }
 
 bootstrap();
