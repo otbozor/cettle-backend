@@ -320,6 +320,13 @@ export class AuthService {
     setTokenCookies(res: Response, tokens: TokenPair): void {
         const isProduction = process.env.NODE_ENV === 'production';
 
+        console.log('🍪 Setting cookies:', {
+            isProduction,
+            NODE_ENV: process.env.NODE_ENV,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+        });
+
         // Cookie options for production cross-domain
         const cookieOptions = {
             httpOnly: true,
@@ -338,6 +345,8 @@ export class AuthService {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
             path: '/',
         });
+
+        console.log('✅ Cookies set successfully');
     }
 
     // Clear cookies
