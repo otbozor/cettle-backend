@@ -320,26 +320,39 @@ export class AuthService {
     setTokenCookies(res: Response, tokens: TokenPair): void {
         const isProduction = process.env.NODE_ENV === 'production';
 
-        res.cookie('accessToken', tokens.accessToken, {
+        // Cookie options for production cross-domain
+        const cookieOptions = {
             httpOnly: true,
             secure: isProduction, // HTTPS only in production
-            sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-domain in production
+            sameSite: isProduction ? 'none' as const : 'lax' as const, // 'none' for cross-domain in production
+        };
+
+        res.cookie('accessToken', tokens.accessToken, {
+            ...cookieOptions,
             maxAge: 15 * 60 * 1000, // 15 minutes
+            path: '/',
         });
 
         res.cookie('refreshToken', tokens.refreshToken, {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? 'none' : 'lax',
+            ...cookieOptions,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            path: '/api/auth/refresh',
+            path: '/',
         });
     }
 
     // Clear cookies
     clearTokenCookies(res: Response): void {
-        res.clearCookie('accessToken');
-        res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        const cookieOptions = {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' as const : 'lax' as const,
+            path: '/',
+        };
+
+        res.clearCookie('accessToken', cookieOptions);
+        res.clearCookie('refreshToken', cookieOptions);
     }
 
     // Clean old sessions (older than 10 minutes)

@@ -52,7 +52,10 @@ PORT=5000
 NODE_ENV=production
 APP_URL=<your-frontend-url>
 API_URL=<your-render-backend-url>
+CORS_ORIGIN=<your-frontend-url>
 ```
+
+**MUHIM:** `NODE_ENV=production` o'rnatilishi shart! Bu cookie sozlamalarini to'g'ri ishlashi uchun kerak.
 
 ## 3. PostgreSQL Database yaratish
 
@@ -129,6 +132,15 @@ app.enableCors({
 - ✅ Environment variable'larni `.env` faylga qo'ymang (gitignore)
 
 ## Troubleshooting:
+
+### Login qilgandan keyin profil ochilmayapti:
+```bash
+# 1. Render.com'da NODE_ENV=production ekanligini tekshiring
+# 2. Frontend NEXT_PUBLIC_API_URL to'g'ri ekanligini tekshiring
+# 3. Browser DevTools → Application → Cookies → accessToken borligini tekshiring
+# 4. Browser DevTools → Application → Local Storage → accessToken borligini tekshiring
+# 5. Backend logs'da CORS xatosi yo'qligini tekshiring
+```
 
 ### Build xatosi:
 ```bash
