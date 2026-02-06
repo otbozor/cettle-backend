@@ -66,8 +66,10 @@ async function bootstrap() {
     // API prefix
     app.setGlobalPrefix('api');
 
-    // Swagger
-    if (process.env.NODE_ENV !== 'production') {
+    // Swagger - Production'da ham ishlaydi (agar ENABLE_SWAGGER=true bo'lsa)
+    const enableSwagger = process.env.ENABLE_SWAGGER === 'true' || process.env.NODE_ENV !== 'production';
+
+    if (enableSwagger) {
         const config = new DocumentBuilder()
             .setTitle('Otbozor API')
             .setDescription("O'zbekiston Ot Savdo Platformasi API")
@@ -77,6 +79,8 @@ async function bootstrap() {
             .build();
         const document = SwaggerModule.createDocument(app, config);
         SwaggerModule.setup('api/docs', app, document);
+
+        console.log(`📚 Swagger docs available at: /api/docs`);
     }
 
     const port = process.env.PORT || 5000;
