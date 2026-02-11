@@ -33,6 +33,7 @@ async function bootstrap() {
         'https://horse-frontend-black.vercel.app',
         'https://www.otbozor.uz',
         'https://otbozor.uz',
+        'https://test.otbozor.uz',
         process.env.APP_URL,
         process.env.CORS_ORIGIN,
     ].filter(Boolean);
