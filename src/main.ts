@@ -35,7 +35,7 @@ async function bootstrap() {
         'https://otbozor.uz',
         'https://test.otbozor.uz',
         process.env.APP_URL,
-        process.env.CORS_ORIGIN,
+        ...(process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) || []),
     ].filter(Boolean);
 
     console.log('🔒 CORS allowed origins:', allowedOrigins);
