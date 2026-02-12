@@ -131,7 +131,7 @@ export class EventsService {
                 contactTelegram: data.contactTelegram || null,
                 prizePool: data.prizePool ? Number(data.prizePool) : null,
                 rules: data.rules || null,
-                status: EventStatus.DRAFT,
+                status: data.status === 'PUBLISHED' ? EventStatus.PUBLISHED : EventStatus.DRAFT,
             },
             include: {
                 region: true,

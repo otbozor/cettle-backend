@@ -1,3 +1,7 @@
+# Windows reserved names
+nul
+src/nul
+
 # Dependencies
 node_modules/
 npm-debug.log*
