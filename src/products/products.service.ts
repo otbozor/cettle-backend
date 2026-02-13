@@ -121,6 +121,34 @@ export class ProductsService {
         return category;
     }
 
+    async getMyProducts(userId: string) {
+        return this.prisma.product.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                category: true,
+                media: {
+                    orderBy: { sortOrder: 'asc' },
+                    take: 1,
+                },
+            },
+        });
+    }
+
+    async deleteProduct(userId: string, productId: string) {
+        const product = await this.prisma.product.findFirst({
+            where: { id: productId, userId },
+        });
+
+        if (!product) {
+            throw new NotFoundException('Mahsulot topilmadi');
+        }
+
+        return this.prisma.product.delete({
+            where: { id: productId },
+        });
+    }
+
     async createProduct(userId: string, dto: UserCreateProductDto) {
         const slug = dto.title
             .toLowerCase()

@@ -172,6 +172,7 @@ model HorseListing {
   hasVideo      Boolean       @default(false) @map("has_video")
   
   status        ListingStatus @default(DRAFT)
+  isPaid        Boolean       @default(false) @map("is_paid")
   rejectReason  String?       @map("reject_reason")
   
   viewCount     Int           @default(0) @map("view_count")

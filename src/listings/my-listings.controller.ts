@@ -40,6 +40,20 @@ export class MyListingsController {
         return this.listingsService.getFavorites(user.id);
     }
 
+    @Get(':id')
+    @ApiOperation({ summary: 'Get my listing by ID' })
+    @ApiResponse({ status: 200, description: 'Returns single listing for editing' })
+    async getMyListingById(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+    ) {
+        const listing = await this.listingsService.getMyListingById(user.id, id);
+        return {
+            success: true,
+            data: listing,
+        };
+    }
+
     @Post()
     @ApiOperation({ summary: 'Create new draft listing' })
     @ApiResponse({ status: 201, description: 'Draft created' })

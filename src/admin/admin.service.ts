@@ -50,6 +50,47 @@ export class AdminService {
         };
     }
 
+    // All listings with filters (admin)
+    async getAdminListings(options?: {
+        status?: ListingStatus;
+        isPaid?: boolean;
+        page?: number;
+        limit?: number;
+    }) {
+        const where: Prisma.HorseListingWhereInput = {};
+
+        if (options?.status) where.status = options.status;
+        if (options?.isPaid !== undefined) where.isPaid = options.isPaid;
+
+        const page = options?.page || 1;
+        const limit = Math.min(options?.limit || 20, 50);
+        const skip = (page - 1) * limit;
+
+        const [listings, total] = await Promise.all([
+            this.prisma.horseListing.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                include: {
+                    user: { select: { displayName: true, telegramUsername: true } },
+                    region: { select: { nameUz: true } },
+                    breed: { select: { name: true } },
+                    media: {
+                        orderBy: { sortOrder: 'asc' },
+                        take: 1,
+                    },
+                },
+            }),
+            this.prisma.horseListing.count({ where }),
+        ]);
+
+        return {
+            data: listings,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
     // Moderation queue
     async getPendingListings(page = 1, limit = 20) {
         const skip = (page - 1) * limit;

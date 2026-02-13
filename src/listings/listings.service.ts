@@ -12,6 +12,7 @@ export class ListingsService {
     async findAll(filter: ListingsFilterDto) {
         const where: Prisma.HorseListingWhereInput = {
             status: ListingStatus.APPROVED,
+            isPaid: true,
         };
 
         // Apply filters
@@ -128,7 +129,7 @@ export class ListingsService {
             },
         });
 
-        if (!listing || listing.status !== ListingStatus.APPROVED) {
+        if (!listing || listing.status !== ListingStatus.APPROVED || !listing.isPaid) {
             throw new NotFoundException('Listing not found');
         }
 
@@ -159,7 +160,7 @@ export class ListingsService {
             },
         });
 
-        if (!listing || listing.status !== ListingStatus.APPROVED) {
+        if (!listing || listing.status !== ListingStatus.APPROVED || !listing.isPaid) {
             throw new NotFoundException('Listing not found');
         }
 
@@ -180,6 +181,7 @@ export class ListingsService {
             where: {
                 id: { not: id },
                 status: ListingStatus.APPROVED,
+                isPaid: true,
                 OR: [
                     { regionId: listing.regionId },
                     { purpose: listing.purpose },
@@ -305,6 +307,30 @@ export class ListingsService {
         });
     }
 
+    async getMyListingById(userId: string, id: string) {
+        const listing = await this.prisma.horseListing.findUnique({
+            where: { id },
+            include: {
+                region: true,
+                district: true,
+                breed: true,
+                media: {
+                    orderBy: { sortOrder: 'asc' },
+                },
+            },
+        });
+
+        if (!listing) {
+            throw new NotFoundException('Listing not found');
+        }
+
+        if (listing.userId !== userId) {
+            throw new ForbiddenException('You can only view your own listings');
+        }
+
+        return listing;
+    }
+
     async getMyListings(userId: string, status?: ListingStatus) {
         const where: Prisma.HorseListingWhereInput = { userId };
         if (status) where.status = status;
@@ -396,7 +422,7 @@ export class ListingsService {
     // Featured listings for homepage
     async getFeatured(limit = 12) {
         return this.prisma.horseListing.findMany({
-            where: { status: ListingStatus.APPROVED },
+            where: { status: ListingStatus.APPROVED, isPaid: true },
             orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
             take: limit,
             include: {
