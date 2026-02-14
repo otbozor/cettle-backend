@@ -31,8 +31,22 @@ export class MediaController {
         @Body() body: { folder: 'listings' | 'blog' | 'events' | 'avatars' },
         @CurrentUser() user: User,
     ): Promise<ApiResponse<{ url: string; publicId: string; type: 'IMAGE' | 'VIDEO' }>> {
+        console.log('📤 Upload request:', {
+            hasFile: !!file,
+            fileSize: file?.size,
+            mimetype: file?.mimetype,
+            folder: body?.folder,
+            userId: user?.id,
+        });
+
         if (!file) {
-            throw new BadRequestException('No file provided');
+            throw new BadRequestException(
+                'No file provided. Ensure the request uses multipart/form-data with field name "file".',
+            );
+        }
+
+        if (!body?.folder) {
+            body = { ...body, folder: 'listings' };
         }
 
         const result = await this.mediaService.uploadFile(file, body.folder);

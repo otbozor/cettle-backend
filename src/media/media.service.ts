@@ -9,11 +9,24 @@ export class MediaService {
         private prisma: PrismaService,
         private configService: ConfigService,
     ) {
-        // Configure Cloudinary
+        const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
+        const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
+        const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
+
+        if (!cloudName || !apiKey || !apiSecret) {
+            console.error('❌ Cloudinary configuration missing:', {
+                CLOUDINARY_CLOUD_NAME: !!cloudName,
+                CLOUDINARY_API_KEY: !!apiKey,
+                CLOUDINARY_API_SECRET: !!apiSecret,
+            });
+        } else {
+            console.log('✅ Cloudinary configured:', cloudName);
+        }
+
         cloudinary.config({
-            cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
-            api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
-            api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+            cloud_name: cloudName,
+            api_key: apiKey,
+            api_secret: apiSecret,
         });
     }
 
@@ -62,8 +75,14 @@ export class MediaService {
                 type: isVideo ? 'VIDEO' : 'IMAGE',
             };
         } catch (error) {
-            console.error('Cloudinary upload error:', error);
-            throw new BadRequestException('Failed to upload file');
+            console.error('❌ Cloudinary upload error:', {
+                message: error.message,
+                http_code: error.http_code,
+                name: error.name,
+            });
+            throw new BadRequestException(
+                `Failed to upload file: ${error.message || 'Cloudinary error'}`,
+            );
         }
     }
 

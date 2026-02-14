@@ -12,7 +12,6 @@ export class ListingsService {
     async findAll(filter: ListingsFilterDto) {
         const where: Prisma.HorseListingWhereInput = {
             status: ListingStatus.APPROVED,
-            isPaid: true,
         };
 
         // Apply filters
@@ -129,7 +128,7 @@ export class ListingsService {
             },
         });
 
-        if (!listing || listing.status !== ListingStatus.APPROVED || !listing.isPaid) {
+        if (!listing || listing.status !== ListingStatus.APPROVED) {
             throw new NotFoundException('Listing not found');
         }
 
@@ -160,7 +159,7 @@ export class ListingsService {
             },
         });
 
-        if (!listing || listing.status !== ListingStatus.APPROVED || !listing.isPaid) {
+        if (!listing || listing.status !== ListingStatus.APPROVED) {
             throw new NotFoundException('Listing not found');
         }
 
@@ -181,7 +180,6 @@ export class ListingsService {
             where: {
                 id: { not: id },
                 status: ListingStatus.APPROVED,
-                isPaid: true,
                 OR: [
                     { regionId: listing.regionId },
                     { purpose: listing.purpose },

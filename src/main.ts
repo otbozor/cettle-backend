@@ -19,6 +19,10 @@ process.on('unhandledRejection', (reason: any) => {
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+    // Body parser limits for large file uploads
+    app.useBodyParser('json', { limit: '50mb' });
+    app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
+
     // Security
     app.use(helmet({
         crossOriginResourcePolicy: { policy: 'cross-origin' },
