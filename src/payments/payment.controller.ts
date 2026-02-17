@@ -1,0 +1,50 @@
+import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { PaymentService } from './payment.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
+import { User } from '@prisma/client';
+import { PaymentPackage } from '@prisma/client';
+
+@ApiTags('Payments')
+@Controller('payments')
+export class PaymentController {
+    constructor(private readonly paymentService: PaymentService) { }
+
+    @Post('create-invoice')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Create Click payment invoice' })
+    async createInvoice(
+        @Body() body: { listingId: string; packageType: string },
+        @CurrentUser() user: User,
+    ) {
+        const packageType = body.packageType as PaymentPackage;
+        const result = await this.paymentService.createInvoice(user.id, body.listingId, packageType);
+        return { success: true, data: result };
+    }
+
+    @Post('click/prepare')
+    @Public()
+    @ApiOperation({ summary: 'Click prepare webhook' })
+    async clickPrepare(@Body() body: any) {
+        return this.paymentService.handlePrepare(body);
+    }
+
+    @Post('click/complete')
+    @Public()
+    @ApiOperation({ summary: 'Click complete webhook' })
+    async clickComplete(@Body() body: any) {
+        return this.paymentService.handleComplete(body);
+    }
+
+    @Get('status/:id')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get payment status' })
+    async getStatus(@Param('id') id: string, @CurrentUser() user: User) {
+        const data = await this.paymentService.getPaymentStatus(id, user.id);
+        return { success: true, data };
+    }
+}

@@ -47,6 +47,7 @@ model User {
   favorites        Favorite[]
   viewLogs         ViewLog[]
   auditLogs        AuditLog[]
+  payments         Payment[]
 
   @@map("users")
 }
@@ -190,6 +191,7 @@ model HorseListing {
   media         HorseMedia[]
   favorites     Favorite[]
   viewLogs      ViewLog[]
+  payments      Payment[]
 
   @@index([userId])
   @@index([regionId])
@@ -403,6 +405,48 @@ model BlogPost {
   @@index([status])
   @@index([publishedAt])
   @@map("blog_posts")
+}
+
+// ============================================
+// PAYMENTS
+// ============================================
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentPackage {
+  OSON_START
+  TEZKOR_SAVDO
+  TURBO_SAVDO
+}
+
+model Payment {
+  id                  String         @id @default(uuid())
+  listingId           String         @map("listing_id")
+  userId              String         @map("user_id")
+  packageType         PaymentPackage @map("package_type")
+  amount              Decimal        @map("amount") @db.Decimal(15, 2)
+  status              PaymentStatus  @default(PENDING)
+
+  // Click fields
+  clickTransId        String?        @map("click_trans_id")
+  clickPaydocId       String?        @map("click_paydoc_id")
+  merchantPrepareId   Int            @map("merchant_prepare_id") @default(0)
+
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  listing             HorseListing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
 }
 
 // ============================================

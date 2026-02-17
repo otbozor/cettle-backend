@@ -13,6 +13,7 @@ import { TelegramModule } from './telegram/telegram.module';
 import { EventsModule } from './events/events.module';
 import { BlogModule } from './blog/blog.module';
 import { ProductsModule } from './products/products.module';
+import { PaymentModule } from './payments/payment.module';
 
 @Module({
     imports: [
@@ -47,6 +48,9 @@ import { ProductsModule } from './products/products.module';
         EventsModule,
         BlogModule,
         ProductsModule,
+
+        // Payments
+        PaymentModule,
     ],
 })
 export class AppModule { }
