@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Delete, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { Public } from '../common/decorators/public.decorator';
@@ -18,6 +18,24 @@ interface ApiResponse<T> {
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
+
+    @Patch('me')
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: 'Update own profile' })
+    async updateProfile(
+        @CurrentUser() user: User,
+        @Body() body: { displayName?: string },
+    ): Promise<ApiResponse<any>> {
+        const updated = await this.usersService.update(user.id, {
+            displayName: body.displayName,
+        });
+        return {
+            success: true,
+            data: { displayName: updated.displayName },
+            message: 'Profile updated successfully',
+            timestamp: new Date().toISOString(),
+        };
+    }
 
     @Delete('me')
     @UseGuards(JwtAuthGuard)
