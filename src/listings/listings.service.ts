@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramChannelService } from '../telegram/telegram-channel.service';
 import { Prisma, ListingStatus, HorseListing } from '@prisma/client';
 import slugify from 'slugify';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,7 +8,10 @@ import { CreateListingDto, UpdateListingDto, ListingsFilterDto } from './dto/lis
 
 @Injectable()
 export class ListingsService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private telegramNotify: TelegramChannelService,
+    ) { }
 
     async findAll(filter: ListingsFilterDto) {
         const where: Prisma.HorseListingWhereInput = {
@@ -341,6 +345,18 @@ export class ListingsService {
                 },
             }),
         ]);
+
+        // Adminga xabar yuborish (fire-and-forget)
+        const submitter = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { displayName: true },
+        });
+        this.telegramNotify.notifyAdminNewListing({
+            id,
+            title: listing.title,
+            userId,
+            userName: submitter?.displayName,
+        }).catch(() => {});
 
         return this.prisma.horseListing.findUnique({ where: { id } }) as Promise<HorseListing>;
     }

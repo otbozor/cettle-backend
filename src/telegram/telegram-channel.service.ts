@@ -23,6 +23,7 @@ interface ListingForChannel {
 export class TelegramChannelService {
     private readonly logger = new Logger(TelegramChannelService.name);
     private readonly channelId: string;
+    private readonly adminChatId: string;
     private readonly frontendUrl: string;
 
     constructor(
@@ -30,8 +31,11 @@ export class TelegramChannelService {
         private readonly configService: ConfigService,
     ) {
         this.channelId = this.configService.get<string>('TELEGRAM_CHANNEL_ID') || '';
+        this.adminChatId = this.configService.get<string>('TELEGRAM_ADMIN_CHAT_ID') || '';
         this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://otbozor.uz';
     }
+
+    // ─── Kanalga e'lon yuborish (boost to'lovi) ─────────────────────────────
 
     async postListingToChannel(listing: ListingForChannel): Promise<void> {
         if (!this.channelId) {
@@ -80,10 +84,91 @@ export class TelegramChannelService {
 
             this.logger.log(`✅ Listing posted to Telegram channel: ${listing.id}`);
         } catch (error) {
-            // Don't throw — channel post failure should not affect payment completion
             this.logger.error(`❌ Failed to post listing to Telegram channel: ${error.message}`);
         }
     }
+
+    // ─── Adminga yangi ot e'loni keldi ───────────────────────────────────────
+
+    async notifyAdminNewListing(listing: { id: string; title: string; userId: string; userName?: string }): Promise<void> {
+        if (!this.adminChatId) return;
+        try {
+            const adminLink = `${this.frontendUrl}/admin/listings/${listing.id}/preview`;
+            const text =
+                `🔔 <b>Yangi ot e'loni tasdiqlash kutmoqda</b>\n\n` +
+                `🐴 ${this.escapeHtml(listing.title)}\n` +
+                (listing.userName ? `👤 ${this.escapeHtml(listing.userName)}\n` : '') +
+                `\n<a href="${adminLink}">Admin panelda ko'rish →</a>`;
+
+            await this.bot.telegram.sendMessage(this.adminChatId, text, { parse_mode: 'HTML' });
+        } catch (error) {
+            this.logger.error(`❌ Failed to notify admin (new listing): ${error.message}`);
+        }
+    }
+
+    // ─── Adminga yangi mahsulot e'loni keldi ─────────────────────────────────
+
+    async notifyAdminNewProduct(product: { id: string; title: string; userName?: string }): Promise<void> {
+        if (!this.adminChatId) return;
+        try {
+            const adminLink = `${this.frontendUrl}/admin/products`;
+            const text =
+                `🔔 <b>Yangi mahsulot tasdiqlash kutmoqda</b>\n\n` +
+                `📦 ${this.escapeHtml(product.title)}\n` +
+                (product.userName ? `👤 ${this.escapeHtml(product.userName)}\n` : '') +
+                `\n<a href="${adminLink}">Admin panelda ko'rish →</a>`;
+
+            await this.bot.telegram.sendMessage(this.adminChatId, text, { parse_mode: 'HTML' });
+        } catch (error) {
+            this.logger.error(`❌ Failed to notify admin (new product): ${error.message}`);
+        }
+    }
+
+    // ─── Userage ot e'loni tasdiqlandi/rad etildi ────────────────────────────
+
+    async notifyUserListingResult(
+        telegramUserId: string,
+        action: 'approved' | 'rejected',
+        listing: { id: string; title: string },
+        rejectReason?: string,
+    ): Promise<void> {
+        try {
+            const myListingsLink = `${this.frontendUrl}/profil/elonlarim`;
+            const text = action === 'approved'
+                ? `✅ <b>E'loningiz tasdiqlandi!</b>\n\n` +
+                  `🐴 ${this.escapeHtml(listing.title)}\n\n` +
+                  `<a href="${myListingsLink}">Mening e'lonlarim →</a>`
+                : `❌ <b>E'loningiz rad etildi</b>\n\n` +
+                  `🐴 ${this.escapeHtml(listing.title)}\n` +
+                  (rejectReason ? `\n📝 Sabab: ${this.escapeHtml(rejectReason)}\n` : '') +
+                  `\n<a href="${myListingsLink}">Mening e'lonlarim →</a>`;
+
+            await this.bot.telegram.sendMessage(telegramUserId, text, { parse_mode: 'HTML' });
+        } catch (error) {
+            this.logger.error(`❌ Failed to notify user (listing ${action}): ${error.message}`);
+        }
+    }
+
+    // ─── Userage mahsulot tasdiqlandi ────────────────────────────────────────
+
+    async notifyUserProductResult(
+        telegramUserId: string,
+        product: { id: string; title: string; slug?: string },
+    ): Promise<void> {
+        try {
+            const myListingsLink = `${this.frontendUrl}/profil/elonlarim`;
+            const text =
+                `✅ <b>Mahsulotingiz tasdiqlandi!</b>\n\n` +
+                `📦 ${this.escapeHtml(product.title)}\n\n` +
+                `<a href="${myListingsLink}">Mening e'lonlarim →</a>`;
+
+            await this.bot.telegram.sendMessage(telegramUserId, text, { parse_mode: 'HTML' });
+        } catch (error) {
+            this.logger.error(`❌ Failed to notify user (product published): ${error.message}`);
+        }
+    }
+
+    // ─── Yordamchi ───────────────────────────────────────────────────────────
 
     private escapeHtml(text: string): string {
         return text

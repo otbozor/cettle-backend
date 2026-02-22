@@ -10,9 +10,10 @@ import { AdminProductsService } from './admin-products.service';
 import { BlogModule } from '../blog/blog.module';
 import { MediaModule } from '../media/media.module';
 import { EventsModule } from '../events/events.module';
+import { TelegramModule } from '../telegram/telegram.module';
 
 @Module({
-    imports: [BlogModule, MediaModule, EventsModule],
+    imports: [BlogModule, MediaModule, EventsModule, TelegramModule],
     controllers: [
         AdminController,
         AdminListingsController,

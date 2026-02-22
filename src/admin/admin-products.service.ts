@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramChannelService } from '../telegram/telegram-channel.service';
 import { ProductStatus, Currency, Prisma } from '@prisma/client';
 import { CreateProductDto } from '../products/dto/create-product.dto';
 import { UpdateProductDto } from '../products/dto/update-product.dto';
@@ -7,7 +8,10 @@ import { CreateCategoryDto } from '../products/dto/create-category.dto';
 
 @Injectable()
 export class AdminProductsService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private telegramNotify: TelegramChannelService,
+    ) { }
 
     // ============================================
     // PRODUCTS
@@ -168,7 +172,7 @@ export class AdminProductsService {
     async publishProduct(id: string) {
         await this.getProductById(id);
 
-        return this.prisma.product.update({
+        const product = await this.prisma.product.update({
             where: { id },
             data: {
                 status: ProductStatus.PUBLISHED,
@@ -177,8 +181,19 @@ export class AdminProductsService {
             include: {
                 category: true,
                 media: true,
+                user: { select: { telegramUserId: true } },
             },
         });
+
+        // Userage xabar yuborish (fire-and-forget)
+        if (product.user?.telegramUserId) {
+            this.telegramNotify.notifyUserProductResult(
+                product.user.telegramUserId.toString(),
+                { id: product.id, title: product.title, slug: product.slug },
+            ).catch(() => {});
+        }
+
+        return product;
     }
 
     async archiveProduct(id: string) {

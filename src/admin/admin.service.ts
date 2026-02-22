@@ -1,11 +1,15 @@
 import { Injectable, ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramChannelService } from '../telegram/telegram-channel.service';
 import { ListingStatus, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private telegramNotify: TelegramChannelService,
+    ) { }
 
     // Check if user is admin
     async checkIsAdmin(userId: string): Promise<boolean> {
@@ -157,10 +161,20 @@ export class AdminService {
                 publishedAt: now,
                 expiresAt,
             },
+            include: { user: { select: { telegramUserId: true } } },
         });
 
         // Log action
         await this.createAuditLog(adminUserId, 'listing.approve', 'HorseListing', listingId);
+
+        // Userage xabar yuborish (fire-and-forget)
+        if (listing.user?.telegramUserId) {
+            this.telegramNotify.notifyUserListingResult(
+                listing.user.telegramUserId.toString(),
+                'approved',
+                { id: listing.id, title: listing.title },
+            ).catch(() => {});
+        }
 
         return listing;
     }
@@ -174,10 +188,21 @@ export class AdminService {
                 status: ListingStatus.REJECTED,
                 rejectReason: reason,
             },
+            include: { user: { select: { telegramUserId: true } } },
         });
 
         // Log action
         await this.createAuditLog(adminUserId, 'listing.reject', 'HorseListing', listingId, { reason });
+
+        // Userage xabar yuborish (fire-and-forget)
+        if (listing.user?.telegramUserId) {
+            this.telegramNotify.notifyUserListingResult(
+                listing.user.telegramUserId.toString(),
+                'rejected',
+                { id: listing.id, title: listing.title },
+                reason,
+            ).catch(() => {});
+        }
 
         return listing;
     }

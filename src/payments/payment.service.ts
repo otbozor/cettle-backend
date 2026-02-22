@@ -471,6 +471,19 @@ export class PaymentService {
                 }),
             ]);
             console.log('✅ Product payment completed:', payment.productId);
+
+            // Adminga yangi mahsulot xabari (fire-and-forget)
+            const productForNotify = await this.prisma.product.findUnique({
+                where: { id: payment.productId },
+                include: { user: { select: { displayName: true } } },
+            });
+            if (productForNotify) {
+                this.telegramChannel.notifyAdminNewProduct({
+                    id: productForNotify.id,
+                    title: productForNotify.title,
+                    userName: productForNotify.user?.displayName,
+                }).catch(() => {});
+            }
         }
 
         return {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Update, Start, Ctx, Help, On } from 'nestjs-telegraf';
+import { Update, Start, Ctx, Help, On, Command } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -186,6 +186,16 @@ export class TelegramBotService {
                 'Iltimos, qaytadan urinib ko\'ring yoki qo\'llab-quvvatlash xizmatiga murojaat qiling.'
             );
         }
+    }
+
+    @Command('myid')
+    async onMyId(@Ctx() ctx: Context) {
+        const userId = ctx.from?.id;
+        await ctx.reply(
+            `🆔 Sizning Telegram ID:\n\n<code>${userId}</code>\n\n` +
+            `Bu ID ni <b>TELEGRAM_ADMIN_CHAT_ID</b> ga kiriting.`,
+            { parse_mode: 'HTML' }
+        );
     }
 
     @Help()
