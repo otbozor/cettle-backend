@@ -176,7 +176,8 @@ export class AdminService {
             ).catch(() => {});
         }
 
-        return listing;
+        const { user: _user, ...listingData } = listing;
+        return listingData;
     }
 
     async rejectListing(listingId: string, adminUserId: string, reason: string) {
@@ -204,7 +205,8 @@ export class AdminService {
             ).catch(() => {});
         }
 
-        return listing;
+        const { user: _user, ...listingData } = listing;
+        return listingData;
     }
 
     // Users management
