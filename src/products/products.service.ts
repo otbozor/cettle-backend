@@ -188,6 +188,33 @@ export class ProductsService {
         });
     }
 
+    async updateMyProduct(userId: string, productId: string, dto: UserCreateProductDto) {
+        const product = await this.prisma.product.findFirst({
+            where: { id: productId, userId },
+        });
+
+        if (!product) {
+            throw new NotFoundException('Mahsulot topilmadi');
+        }
+
+        return this.prisma.product.update({
+            where: { id: productId },
+            data: {
+                title: dto.title,
+                categoryId: dto.categoryId || null,
+                description: dto.description || null,
+                priceAmount: dto.priceAmount,
+                priceCurrency: (dto.priceCurrency as Currency) || Currency.UZS,
+                hasDelivery: dto.hasDelivery ?? false,
+                stockStatus: (dto.stockStatus as any) || 'IN_STOCK',
+            },
+            include: {
+                category: true,
+                media: { orderBy: { sortOrder: 'asc' } },
+            },
+        });
+    }
+
     async deleteProduct(userId: string, productId: string) {
         const product = await this.prisma.product.findFirst({
             where: { id: productId, userId },

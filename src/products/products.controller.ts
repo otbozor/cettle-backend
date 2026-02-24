@@ -37,7 +37,7 @@ export class ProductsController {
             categoryId,
             priceMin: priceMin ? Number(priceMin) : undefined,
             priceMax: priceMax ? Number(priceMax) : undefined,
-            hasDelivery: hasDelivery === 'true',
+            hasDelivery: hasDelivery !== undefined ? hasDelivery === 'true' : undefined,
             stockStatus,
             q,
             page: page ? Number(page) : undefined,
