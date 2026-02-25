@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -26,6 +26,7 @@ export class AdminListingsController {
         @CurrentUser() user: User,
         @Query('status') status?: string,
         @Query('isPaid') isPaid?: string,
+        @Query('regionId') regionId?: string,
         @Query('page') page?: number,
         @Query('limit') limit?: number,
     ): Promise<ApiResponse<any>> {
@@ -33,6 +34,7 @@ export class AdminListingsController {
         const data = await this.adminService.getAdminListings({
             status: status as ListingStatus | undefined,
             isPaid: isPaid !== undefined ? isPaid === 'true' : undefined,
+            regionId,
             page: page ? Number(page) : undefined,
             limit: limit ? Number(limit) : undefined,
         });
@@ -89,6 +91,22 @@ export class AdminListingsController {
             success: true,
             data,
             message: 'Listing approved successfully',
+            timestamp: new Date().toISOString(),
+        };
+    }
+
+    @Delete(':id')
+    @ApiOperation({ summary: "E'lonni o'chirish (admin)" })
+    async deleteListing(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+    ): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.deleteListing(id, user.id);
+        return {
+            success: true,
+            data,
+            message: "E'lon muvaffaqiyatli o'chirildi",
             timestamp: new Date().toISOString(),
         };
     }

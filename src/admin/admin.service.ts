@@ -54,10 +54,65 @@ export class AdminService {
         };
     }
 
+    // Region stats for dashboard charts
+    async getRegionStats() {
+        type RegionRow = { region_id: string; count: bigint };
+
+        const [listingRows, productRows] = await Promise.all([
+            this.prisma.$queryRaw<RegionRow[]>`
+                SELECT region_id, COUNT(*) as count
+                FROM horse_listings
+                WHERE region_id IS NOT NULL
+                GROUP BY region_id
+                ORDER BY count DESC
+                LIMIT 10
+            `,
+            this.prisma.$queryRaw<RegionRow[]>`
+                SELECT region_id, COUNT(*) as count
+                FROM products
+                WHERE region_id IS NOT NULL
+                GROUP BY region_id
+                ORDER BY count DESC
+                LIMIT 10
+            `,
+        ]);
+
+        const regionIds = [
+            ...new Set([
+                ...listingRows.map(r => r.region_id),
+                ...productRows.map(r => r.region_id),
+            ]),
+        ];
+
+        const regions = regionIds.length > 0
+            ? await this.prisma.region.findMany({
+                where: { id: { in: regionIds } },
+                select: { id: true, nameUz: true },
+            })
+            : [];
+
+        const regionMap: Record<string, string> = {};
+        regions.forEach(r => { regionMap[r.id] = r.nameUz; });
+
+        return {
+            listings: listingRows.map(r => ({
+                regionId: r.region_id,
+                name: regionMap[r.region_id] || r.region_id,
+                count: Number(r.count),
+            })),
+            products: productRows.map(r => ({
+                regionId: r.region_id,
+                name: regionMap[r.region_id] || r.region_id,
+                count: Number(r.count),
+            })),
+        };
+    }
+
     // All listings with filters (admin)
     async getAdminListings(options?: {
         status?: ListingStatus;
         isPaid?: boolean;
+        regionId?: string;
         page?: number;
         limit?: number;
     }) {
@@ -65,6 +120,7 @@ export class AdminService {
 
         if (options?.status) where.status = options.status;
         if (options?.isPaid !== undefined) where.isPaid = options.isPaid;
+        if (options?.regionId) where.regionId = options.regionId;
 
         const page = options?.page || 1;
         const limit = Math.min(options?.limit || 20, 50);
@@ -78,7 +134,7 @@ export class AdminService {
                 take: limit,
                 include: {
                     user: { select: { displayName: true, telegramUsername: true } },
-                    region: { select: { nameUz: true } },
+                    region: { select: { id: true, nameUz: true } },
                     breed: { select: { name: true } },
                     media: {
                         orderBy: { sortOrder: 'asc' },
@@ -178,6 +234,25 @@ export class AdminService {
 
         const { user: _user, ...listingData } = listing;
         return listingData;
+    }
+
+    async deleteListing(listingId: string, adminUserId: string) {
+        await this.requireAdmin(adminUserId);
+
+        const listing = await this.prisma.horseListing.findUnique({
+            where: { id: listingId },
+            select: { id: true, title: true },
+        });
+
+        if (!listing) {
+            throw new NotFoundException('Listing not found');
+        }
+
+        await this.prisma.horseListing.delete({ where: { id: listingId } });
+
+        await this.createAuditLog(adminUserId, 'listing.delete', 'HorseListing', listingId);
+
+        return { deleted: true };
     }
 
     async rejectListing(listingId: string, adminUserId: string, reason: string) {

@@ -179,6 +179,7 @@ export class AdminFinanceController {
                     status: p.status,
                     type: p.listingId ? 'listing' : 'product',
                     packageType: p.packageType,
+                    listingBundleSize: p.listingBundleSize,
                     user: p.user,
                     subject: p.listing || p.product,
                     createdAt: p.createdAt,

@@ -47,6 +47,7 @@ model User {
   listings         HorseListing[]
   products         Product[]
   favorites        Favorite[]
+  productFavorites ProductFavorite[]
   viewLogs         ViewLog[]
   auditLogs        AuditLog[]
   payments         Payment[]
@@ -85,10 +86,11 @@ model Region {
   nameUz   String     @map("name_uz")
   nameRu   String?    @map("name_ru")
   slug     String     @unique
-  
+
   districts District[]
   listings  HorseListing[]
   events    Event[]
+  products  Product[]
 
   @@map("regions")
 }
@@ -103,6 +105,7 @@ model District {
   region   Region  @relation(fields: [regionId], references: [id], onDelete: Cascade)
   listings HorseListing[]
   events   Event[]
+  products Product[]
 
   @@index([regionId])
   @@map("districts")
@@ -344,6 +347,9 @@ model Product {
   userId        String?       @map("user_id")
   description   String?       @db.Text
 
+  regionId      String?       @map("region_id")
+  districtId    String?       @map("district_id")
+
   priceAmount   Decimal       @map("price_amount") @db.Decimal(15, 2)
   priceCurrency Currency      @default(UZS) @map("price_currency")
 
@@ -353,6 +359,7 @@ model Product {
   isPaid        Boolean       @default(false) @map("is_paid")
 
   viewCount     Int           @default(0) @map("view_count")
+  favoriteCount Int           @default(0) @map("favorite_count")
 
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
@@ -360,14 +367,32 @@ model Product {
 
   category      ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   user          User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  region        Region?          @relation(fields: [regionId], references: [id])
+  district      District?        @relation(fields: [districtId], references: [id])
   media         ProductMedia[]
   payments      Payment[]
+  productFavorites ProductFavorite[]
 
   @@index([categoryId])
   @@index([userId])
+  @@index([regionId])
   @@index([status])
   @@index([publishedAt])
   @@map("products")
+}
+
+model ProductFavorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  productId String   @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("product_favorites")
 }
 
 model ProductMedia {

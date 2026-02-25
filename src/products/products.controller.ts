@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, UseGuards, Req, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -16,6 +16,8 @@ export class ProductsController {
     @ApiOperation({ summary: 'Barcha mahsulotlarni olish' })
     @ApiResponse({ status: 200, description: 'Mahsulotlar ro\'yxati' })
     @ApiQuery({ name: 'categoryId', required: false })
+    @ApiQuery({ name: 'regionId', required: false })
+    @ApiQuery({ name: 'districtId', required: false })
     @ApiQuery({ name: 'priceMin', required: false })
     @ApiQuery({ name: 'priceMax', required: false })
     @ApiQuery({ name: 'hasDelivery', required: false })
@@ -25,6 +27,8 @@ export class ProductsController {
     @ApiQuery({ name: 'limit', required: false })
     async findAll(
         @Query('categoryId') categoryId?: string,
+        @Query('regionId') regionId?: string,
+        @Query('districtId') districtId?: string,
         @Query('priceMin') priceMin?: string,
         @Query('priceMax') priceMax?: string,
         @Query('hasDelivery') hasDelivery?: string,
@@ -35,6 +39,8 @@ export class ProductsController {
     ) {
         return this.productsService.findAll({
             categoryId,
+            regionId,
+            districtId,
             priceMin: priceMin ? Number(priceMin) : undefined,
             priceMax: priceMax ? Number(priceMax) : undefined,
             hasDelivery: hasDelivery !== undefined ? hasDelivery === 'true' : undefined,
@@ -86,5 +92,28 @@ export class ProductsController {
         const sessionId = req.cookies?.sessionId;
         this.productsService.incrementViewCount(slug, user?.id, sessionId).catch(() => { });
         return { success: true };
+    }
+
+    @Post(':id/favorite')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Mahsulotni sevimlilar/o\'chirish' })
+    async toggleFavorite(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.productsService.toggleProductFavorite(user.id, id);
+    }
+
+    @Get(':id/favorite')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Sevimli ekanligini tekshirish' })
+    async getFavoriteStatus(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.productsService.getProductFavoriteStatus(user.id, id);
     }
 }

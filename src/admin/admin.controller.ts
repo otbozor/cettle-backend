@@ -33,6 +33,19 @@ export class AdminController {
         };
     }
 
+    @Get('dashboard/region-stats')
+    @ApiOperation({ summary: 'Get listings and products count by region' })
+    async getRegionStats(@CurrentUser() user: User): Promise<ApiResponse<any>> {
+        await this.adminService.requireAdmin(user.id);
+        const data = await this.adminService.getRegionStats();
+        return {
+            success: true,
+            data,
+            message: 'Region stats retrieved successfully',
+            timestamp: new Date().toISOString(),
+        };
+    }
+
     @Get('users')
     @ApiOperation({ summary: 'Get all users' })
     async getUsers(

@@ -35,6 +35,8 @@ export class ProductsService {
 
     async findAll(options?: {
         categoryId?: string;
+        regionId?: string;
+        districtId?: string;
         priceMin?: number;
         priceMax?: number;
         hasDelivery?: boolean;
@@ -48,6 +50,8 @@ export class ProductsService {
         };
 
         if (options?.categoryId) where.categoryId = options.categoryId;
+        if (options?.regionId) where.regionId = options.regionId;
+        if (options?.districtId) where.districtId = options.districtId;
         if (options?.hasDelivery !== undefined) where.hasDelivery = options.hasDelivery;
         if (options?.stockStatus) where.stockStatus = options.stockStatus as any;
 
@@ -76,6 +80,8 @@ export class ProductsService {
                 take: limit,
                 include: {
                     category: true,
+                    region: true,
+                    district: true,
                     media: {
                         orderBy: { sortOrder: 'asc' },
                         take: 1,
@@ -101,6 +107,8 @@ export class ProductsService {
             where: { slug },
             include: {
                 category: true,
+                region: true,
+                district: true,
                 media: {
                     orderBy: { sortOrder: 'asc' },
                 },
@@ -180,6 +188,8 @@ export class ProductsService {
             orderBy: { createdAt: 'desc' },
             include: {
                 category: true,
+                region: true,
+                district: true,
                 media: {
                     orderBy: { sortOrder: 'asc' },
                     take: 1,
@@ -202,6 +212,8 @@ export class ProductsService {
             data: {
                 title: dto.title,
                 categoryId: dto.categoryId || null,
+                regionId: dto.regionId || null,
+                districtId: dto.districtId || null,
                 description: dto.description || null,
                 priceAmount: dto.priceAmount,
                 priceCurrency: (dto.priceCurrency as Currency) || Currency.UZS,
@@ -210,6 +222,8 @@ export class ProductsService {
             },
             include: {
                 category: true,
+                region: true,
+                district: true,
                 media: { orderBy: { sortOrder: 'asc' } },
             },
         });
@@ -242,6 +256,8 @@ export class ProductsService {
                 title: dto.title,
                 slug,
                 categoryId: dto.categoryId || null,
+                regionId: dto.regionId || null,
+                districtId: dto.districtId || null,
                 userId,
                 description: dto.description || null,
                 priceAmount: dto.priceAmount,
@@ -252,8 +268,64 @@ export class ProductsService {
             },
             include: {
                 category: true,
+                region: true,
+                district: true,
                 media: true,
             },
         });
+    }
+
+    // =====================
+    // PRODUCT FAVORITES
+    // =====================
+
+    async toggleProductFavorite(userId: string, productId: string) {
+        const existing = await this.prisma.productFavorite.findUnique({
+            where: { userId_productId: { userId, productId } },
+        });
+
+        if (existing) {
+            await this.prisma.productFavorite.delete({
+                where: { id: existing.id },
+            });
+            await this.prisma.product.update({
+                where: { id: productId },
+                data: { favoriteCount: { decrement: 1 } },
+            });
+            return { favorited: false };
+        } else {
+            await this.prisma.productFavorite.create({
+                data: { userId, productId },
+            });
+            await this.prisma.product.update({
+                where: { id: productId },
+                data: { favoriteCount: { increment: 1 } },
+            });
+            return { favorited: true };
+        }
+    }
+
+    async getProductFavoriteStatus(userId: string, productId: string) {
+        const existing = await this.prisma.productFavorite.findUnique({
+            where: { userId_productId: { userId, productId } },
+        });
+        return { favorited: !!existing };
+    }
+
+    async getMyProductFavorites(userId: string) {
+        const favorites = await this.prisma.productFavorite.findMany({
+            where: { userId },
+            include: {
+                product: {
+                    include: {
+                        category: true,
+                        region: true,
+                        media: { orderBy: { sortOrder: 'asc' }, take: 1 },
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        return favorites.map(f => f.product);
     }
 }

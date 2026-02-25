@@ -22,6 +22,14 @@ export class UserCreateProductDto {
 
     @IsOptional()
     @IsString()
+    regionId?: string;
+
+    @IsOptional()
+    @IsString()
+    districtId?: string;
+
+    @IsOptional()
+    @IsString()
     description?: string;
 
     @Type(() => Number)
