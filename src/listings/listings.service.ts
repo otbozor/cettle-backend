@@ -507,7 +507,7 @@ export class ListingsService {
     }
 
     // Featured listings for homepage
-    async getFeatured(limit = 12) {
+    async getFeatured(limit = 50) {
         return this.prisma.horseListing.findMany({
             where: { status: ListingStatus.APPROVED, isPremium: true },
             orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
