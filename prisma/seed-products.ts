@@ -38,7 +38,7 @@ async function seedProducts() {
 
     if (egarCategory) {
         // Sample product 1
-        await prisma.product.upsert({
+        const egarProduct = await prisma.product.upsert({
             where: { slug: 'qorabayir-egari' },
             update: {},
             create: {
@@ -52,15 +52,16 @@ async function seedProducts() {
                 stockStatus: 'IN_STOCK',
                 status: 'PUBLISHED',
                 publishedAt: new Date(),
-                media: {
-                    create: [
-                        {
-                            url: 'https://images.unsplash.com/photo-1541416955071-88df54888a7c?w=800',
-                            thumbUrl: 'https://images.unsplash.com/photo-1541416955071-88df54888a7c?w=400',
-                            sortOrder: 0,
-                        },
-                    ],
-                },
+            },
+        });
+        // Update media (delete old, recreate)
+        await prisma.productMedia.deleteMany({ where: { productId: egarProduct.id } });
+        await prisma.productMedia.create({
+            data: {
+                productId: egarProduct.id,
+                url: 'https://picsum.photos/seed/egar/800/600',
+                thumbUrl: 'https://picsum.photos/seed/egar/400/300',
+                sortOrder: 0,
             },
         });
 
@@ -69,7 +70,7 @@ async function seedProducts() {
 
     if (ozuqaCategory) {
         // Sample product 2
-        await prisma.product.upsert({
+        const ozuqaProduct = await prisma.product.upsert({
             where: { slug: 'maxsus-ot-ozuqasi' },
             update: {},
             create: {
@@ -83,15 +84,16 @@ async function seedProducts() {
                 stockStatus: 'IN_STOCK',
                 status: 'PUBLISHED',
                 publishedAt: new Date(),
-                media: {
-                    create: [
-                        {
-                            url: 'https://images.unsplash.com/photo-1623947477610-d81a985d2629?w=800',
-                            thumbUrl: 'https://images.unsplash.com/photo-1623947477610-d81a985d2629?w=400',
-                            sortOrder: 0,
-                        },
-                    ],
-                },
+            },
+        });
+        // Update media (delete old, recreate)
+        await prisma.productMedia.deleteMany({ where: { productId: ozuqaProduct.id } });
+        await prisma.productMedia.create({
+            data: {
+                productId: ozuqaProduct.id,
+                url: 'https://picsum.photos/seed/ozuqa/800/600',
+                thumbUrl: 'https://picsum.photos/seed/ozuqa/400/300',
+                sortOrder: 0,
             },
         });
 
