@@ -231,63 +231,38 @@ export class AdminBlogController {
     }
 
     @Patch('posts/:id')
+    @UseInterceptors(FileInterceptor('coverImage'))
+    @ApiConsumes('multipart/form-data')
     @ApiOperation({
         summary: 'Blog post tahrirlash',
         description: 'Blog post ma\'lumotlarini tahrirlash (ixtiyoriy field-lar)',
     })
-    @ApiBody({
-        schema: {
-            type: 'object',
-            properties: {
-                title: {
-                    type: 'string',
-                    description: 'Blog post sarlavhasi',
-                    example: 'Otni qanday boqish kerak - Yangilangan',
-                },
-                slug: {
-                    type: 'string',
-                    description: 'URL slug',
-                    example: 'otni-qanday-boqish-kerak-yangilangan',
-                },
-                excerpt: {
-                    type: 'string',
-                    description: 'Qisqa tavsif',
-                    example: 'Yangilangan tavsif',
-                },
-                content: {
-                    type: 'string',
-                    description: 'To\'liq content',
-                    example: '# Yangilangan content',
-                },
-            },
-        },
-    })
     @ApiResponse({
         status: 200,
         description: 'Blog post muvaffaqiyatli tahrirlandi',
-        schema: {
-            example: {
-                success: true,
-                data: {
-                    id: '8c4bc7b4-bff4-4020-9266-127549d06d47',
-                    title: 'Otni qanday boqish kerak - Yangilangan',
-                    slug: 'otni-qanday-boqish-kerak-yangilangan',
-                    status: 'DRAFT',
-                    updatedAt: '2026-02-03T13:40:00.000Z',
-                },
-                message: 'Post updated successfully',
-                timestamp: '2026-02-03T13:40:00.000Z',
-            },
-        },
     })
     async updatePost(
+        @UploadedFile() file: Express.Multer.File,
         @CurrentUser() user: User,
         @Param('id') id: string,
         @Body() body: any,
     ) {
         await this.adminService.requireAdmin(user.id);
 
-        const post = await this.blogService.updatePost(id, body);
+        let coverImage: string | undefined;
+        if (file) {
+            const result = await this.mediaService.uploadFile(file, 'blog');
+            coverImage = result.url;
+        }
+
+        const updateData: any = {};
+        if (body.title !== undefined) updateData.title = body.title;
+        if (body.slug !== undefined) updateData.slug = body.slug;
+        if (body.excerpt !== undefined) updateData.excerpt = body.excerpt;
+        if (body.content !== undefined) updateData.content = body.content;
+        if (coverImage) updateData.coverImage = coverImage;
+
+        const post = await this.blogService.updatePost(id, updateData);
 
         return {
             success: true,

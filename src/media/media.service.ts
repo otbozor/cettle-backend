@@ -95,6 +95,11 @@ export class MediaService {
         }
     }
 
+    private generateThumbUrl(url: string): string {
+        if (!url || !url.includes('res.cloudinary.com')) return url;
+        return url.replace('/upload/', '/upload/w_600,h_400,c_fill,q_auto,f_auto/');
+    }
+
     // Delete file from Cloudinary
     async deleteFile(publicId: string): Promise<void> {
         try {
@@ -121,6 +126,7 @@ export class MediaService {
             data: media.map((m, index) => ({
                 listingId,
                 url: m.url,
+                thumbUrl: this.generateThumbUrl(m.url),
                 type: m.type,
                 sortOrder: m.sortOrder ?? index,
             })),
@@ -143,6 +149,7 @@ export class MediaService {
             data: media.map((m, index) => ({
                 productId,
                 url: m.url,
+                thumbUrl: this.generateThumbUrl(m.url),
                 sortOrder: m.sortOrder ?? index,
             })),
         });

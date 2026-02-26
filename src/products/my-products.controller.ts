@@ -32,6 +32,13 @@ export class MyProductsController {
         };
     }
 
+    @Get('favorites')
+    @ApiOperation({ summary: 'Get my favorite products' })
+    @ApiResponse({ status: 200, description: 'Returns favorited products' })
+    async getMyFavoriteProducts(@CurrentUser() user: User) {
+        return this.productsService.getMyProductFavorites(user.id);
+    }
+
     @Put(':id')
     @ApiOperation({ summary: 'Update my product' })
     @ApiResponse({ status: 200, description: 'Product updated' })
