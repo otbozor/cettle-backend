@@ -46,16 +46,15 @@ export class ListingsExpiryService implements OnModuleInit {
 
                 this.logger.log(`⏰ ${expiredListings.length} ta e'lon muddati tugadi (EXPIRED)`);
 
-                // Har bir user ga Telegram xabari yuboramiz
-                for (const listing of expiredListings) {
-                    const telegramUserId = listing.user?.telegramUserId;
-                    if (telegramUserId) {
-                        await this.telegramChannel.notifyUserListingExpired(
-                            telegramUserId.toString(),
-                            { id: listing.id, title: listing.title },
-                        );
-                    }
-                }
+                // Har bir user ga Telegram xabari parallel yuboramiz
+                await Promise.allSettled(
+                    expiredListings
+                        .filter(l => l.user?.telegramUserId)
+                        .map(l => this.telegramChannel.notifyUserListingExpired(
+                            l.user.telegramUserId.toString(),
+                            { id: l.id, title: l.title },
+                        ))
+                );
             }
 
             // 2. Boost muddati tugasa → isPaid va isTop ni reset qilish
