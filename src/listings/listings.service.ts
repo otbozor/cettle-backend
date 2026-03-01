@@ -283,10 +283,12 @@ export class ListingsService {
             ListingStatus.REJECTED,
             ListingStatus.EXPIRED,
             ListingStatus.ARCHIVED,
+            ListingStatus.PENDING,
+            ListingStatus.APPROVED,
         ];
 
         if (!editableStatuses.includes(listing.status)) {
-            throw new ForbiddenException('Can only edit draft, rejected, expired or archived listings');
+            throw new ForbiddenException('Can only edit draft, rejected, expired, archived, pending or approved listings');
         }
 
         return this.prisma.horseListing.update({
@@ -325,34 +327,45 @@ export class ListingsService {
             throw new ForbiddenException('Kamida bitta rasm yuklash kerak');
         }
 
-        // Listing credits check
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: { listingCredits: true },
-        });
-
-        if (!user || user.listingCredits <= 0) {
-            throw new HttpException(
-                { requiresPayment: true, listingId: id },
-                HttpStatus.PAYMENT_REQUIRED,
-            );
-        }
-
-        // Decrement 1 credit and submit in transaction
-        await this.prisma.$transaction([
-            this.prisma.user.update({
-                where: { id: userId },
-                data: { listingCredits: { decrement: 1 } },
-            }),
-            this.prisma.horseListing.update({
+        if (listing.isPaid) {
+            // Already paid (re-submitting after edit) — no credit deduction
+            await this.prisma.horseListing.update({
                 where: { id },
                 data: {
                     status: ListingStatus.PENDING,
-                    isPaid: true,
                     hasVideo: listing.media.some((m) => m.type === 'VIDEO'),
                 },
-            }),
-        ]);
+            });
+        } else {
+            // First-time submission — check and deduct credit
+            const user = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { listingCredits: true },
+            });
+
+            if (!user || user.listingCredits <= 0) {
+                throw new HttpException(
+                    { requiresPayment: true, listingId: id },
+                    HttpStatus.PAYMENT_REQUIRED,
+                );
+            }
+
+            // Decrement 1 credit and submit in transaction
+            await this.prisma.$transaction([
+                this.prisma.user.update({
+                    where: { id: userId },
+                    data: { listingCredits: { decrement: 1 } },
+                }),
+                this.prisma.horseListing.update({
+                    where: { id },
+                    data: {
+                        status: ListingStatus.PENDING,
+                        isPaid: true,
+                        hasVideo: listing.media.some((m) => m.type === 'VIDEO'),
+                    },
+                }),
+            ]);
+        }
 
         // Adminga xabar yuborish (fire-and-forget)
         const submitter = await this.prisma.user.findUnique({
