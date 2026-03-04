@@ -299,7 +299,7 @@ model Event {
   contactPhone    String?     @map("contact_phone")
   contactTelegram String?     @map("contact_telegram")
   
-  prizePool       Decimal?    @map("prize_pool") @db.Decimal(15, 2)
+  prizePool       String?     @map("prize_pool")
   prizeCurrency   Currency    @default(UZS) @map("prize_currency")
   rules           String?     @db.Text
   
