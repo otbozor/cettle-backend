@@ -7,7 +7,6 @@ import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import * as path from 'path';
 
-// Telegram bot internet yo'q bo'lganda crash qilmasin
 process.on('unhandledRejection', (reason: any) => {
     if (reason?.code === 'ENOTFOUND' || reason?.type === 'system') {
         console.warn('⚠️ Telegram bot ulanishi muddatida muvaffaqiyatsiz (internet yo\'q yoki bot token noto\'g\'ri). Bot ishlashda davom etmaydi, ammo server ishlayapti.');
@@ -19,7 +18,7 @@ process.on('unhandledRejection', (reason: any) => {
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-    // Body parser limits for large file uploads
+    
     app.useBodyParser('json', { limit: '50mb' });
     app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
 
