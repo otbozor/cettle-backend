@@ -18,7 +18,6 @@ process.on('unhandledRejection', (reason: any) => {
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-    
     app.useBodyParser('json', { limit: '50mb' });
     app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
 

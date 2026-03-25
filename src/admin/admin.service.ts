@@ -36,8 +36,8 @@ export class AdminService {
             totalUsers,
             todayViews,
         ] = await Promise.all([
-            this.prisma.horseListing.count({ where: { status: ListingStatus.PENDING } }),
-            this.prisma.horseListing.count({ where: { status: ListingStatus.APPROVED } }),
+            this.prisma.cattleListing.count({ where: { status: ListingStatus.PENDING } }),
+            this.prisma.cattleListing.count({ where: { status: ListingStatus.APPROVED } }),
             this.prisma.user.count(),
             this.prisma.viewLog.count({
                 where: {
@@ -61,7 +61,7 @@ export class AdminService {
         const [listingRows, productRows] = await Promise.all([
             this.prisma.$queryRaw<RegionRow[]>`
                 SELECT region_id, COUNT(*) as count
-                FROM horse_listings
+                FROM cattle_listings
                 WHERE region_id IS NOT NULL
                 GROUP BY region_id
                 ORDER BY count DESC
@@ -117,7 +117,7 @@ export class AdminService {
         page?: number;
         limit?: number;
     }) {
-        const where: Prisma.HorseListingWhereInput = {};
+        const where: Prisma.CattleListingWhereInput = {};
 
         if (options?.status) where.status = options.status;
         if (options?.isPaid !== undefined) where.isPaid = options.isPaid;
@@ -129,7 +129,7 @@ export class AdminService {
         const skip = (page - 1) * limit;
 
         const [listings, total] = await Promise.all([
-            this.prisma.horseListing.findMany({
+            this.prisma.cattleListing.findMany({
                 where,
                 orderBy: { createdAt: 'desc' },
                 skip,
@@ -144,7 +144,7 @@ export class AdminService {
                     },
                 },
             }),
-            this.prisma.horseListing.count({ where }),
+            this.prisma.cattleListing.count({ where }),
         ]);
 
         return {
@@ -158,7 +158,7 @@ export class AdminService {
         const skip = (page - 1) * limit;
 
         const [listings, total] = await Promise.all([
-            this.prisma.horseListing.findMany({
+            this.prisma.cattleListing.findMany({
                 where: { status: ListingStatus.PENDING },
                 orderBy: { createdAt: 'asc' },
                 skip,
@@ -169,7 +169,7 @@ export class AdminService {
                     media: { take: 1 },
                 },
             }),
-            this.prisma.horseListing.count({ where: { status: ListingStatus.PENDING } }),
+            this.prisma.cattleListing.count({ where: { status: ListingStatus.PENDING } }),
         ]);
 
         return {
@@ -179,7 +179,7 @@ export class AdminService {
     }
 
     async getListingById(listingId: string) {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id: listingId },
             include: {
                 region: true,
@@ -212,7 +212,7 @@ export class AdminService {
 
         const now = new Date();
         const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        const listing = await this.prisma.horseListing.update({
+        const listing = await this.prisma.cattleListing.update({
             where: { id: listingId },
             data: {
                 status: ListingStatus.APPROVED,
@@ -223,7 +223,7 @@ export class AdminService {
         });
 
         // Log action
-        await this.createAuditLog(adminUserId, 'listing.approve', 'HorseListing', listingId);
+        await this.createAuditLog(adminUserId, 'listing.approve', 'CattleListing', listingId);
 
         // Userage xabar yuborish (fire-and-forget)
         if (listing.user?.telegramUserId) {
@@ -241,7 +241,7 @@ export class AdminService {
     async deleteListing(listingId: string, adminUserId: string) {
         await this.requireAdmin(adminUserId);
 
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id: listingId },
             select: { id: true, title: true },
         });
@@ -250,9 +250,9 @@ export class AdminService {
             throw new NotFoundException('Listing not found');
         }
 
-        await this.prisma.horseListing.delete({ where: { id: listingId } });
+        await this.prisma.cattleListing.delete({ where: { id: listingId } });
 
-        await this.createAuditLog(adminUserId, 'listing.delete', 'HorseListing', listingId);
+        await this.createAuditLog(adminUserId, 'listing.delete', 'CattleListing', listingId);
 
         return { deleted: true };
     }
@@ -260,7 +260,7 @@ export class AdminService {
     async rejectListing(listingId: string, adminUserId: string, reason: string) {
         await this.requireAdmin(adminUserId);
 
-        const listing = await this.prisma.horseListing.update({
+        const listing = await this.prisma.cattleListing.update({
             where: { id: listingId },
             data: {
                 status: ListingStatus.REJECTED,
@@ -270,7 +270,7 @@ export class AdminService {
         });
 
         // Log action
-        await this.createAuditLog(adminUserId, 'listing.reject', 'HorseListing', listingId, { reason });
+        await this.createAuditLog(adminUserId, 'listing.reject', 'CattleListing', listingId, { reason });
 
         // Userage xabar yuborish (fire-and-forget)
         if (listing.user?.telegramUserId) {
@@ -284,6 +284,132 @@ export class AdminService {
 
         const { user: _user, ...listingData } = listing;
         return listingData;
+    }
+
+    // Sheep Listings admin methods
+    async getAdminSheepListings(options?: {
+        status?: ListingStatus;
+        regionId?: string;
+        page?: number;
+        limit?: number;
+    }) {
+        const where: Prisma.SheepListingWhereInput = {};
+        if (options?.status) where.status = options.status;
+        if (options?.regionId) where.regionId = options.regionId;
+
+        const page = options?.page || 1;
+        const limit = Math.min(options?.limit || 20, 50);
+        const skip = (page - 1) * limit;
+
+        const [listings, total] = await Promise.all([
+            this.prisma.sheepListing.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                include: {
+                    user: { select: { displayName: true, telegramUsername: true } },
+                    region: { select: { id: true, nameUz: true } },
+                    breed: { select: { name: true } },
+                    media: { orderBy: { sortOrder: 'asc' }, take: 1 },
+                },
+            }),
+            this.prisma.sheepListing.count({ where }),
+        ]);
+
+        return {
+            data: listings,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
+    async getAdminSheepListingById(listingId: string) {
+        const listing = await this.prisma.sheepListing.findUnique({
+            where: { id: listingId },
+            include: {
+                region: true,
+                district: true,
+                breed: true,
+                user: {
+                    select: {
+                        id: true,
+                        displayName: true,
+                        telegramUsername: true,
+                        isVerified: true,
+                        avatarUrl: true,
+                    },
+                },
+                media: { orderBy: { sortOrder: 'asc' } },
+            },
+        });
+
+        if (!listing) throw new NotFoundException('Sheep listing not found');
+        return listing;
+    }
+
+    async approveSheepListing(listingId: string, adminUserId: string) {
+        await this.requireAdmin(adminUserId);
+
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const listing = await this.prisma.sheepListing.update({
+            where: { id: listingId },
+            data: { status: ListingStatus.APPROVED, publishedAt: now, expiresAt },
+            include: { user: { select: { telegramUserId: true } } },
+        });
+
+        await this.createAuditLog(adminUserId, 'sheep_listing.approve', 'SheepListing', listingId);
+
+        if (listing.user?.telegramUserId) {
+            this.telegramNotify.notifyUserListingResult(
+                listing.user.telegramUserId.toString(),
+                'approved',
+                { id: listing.id, title: listing.title },
+            ).catch(() => {});
+        }
+
+        const { user: _user, ...listingData } = listing;
+        return listingData;
+    }
+
+    async rejectSheepListing(listingId: string, adminUserId: string, reason: string) {
+        await this.requireAdmin(adminUserId);
+
+        const listing = await this.prisma.sheepListing.update({
+            where: { id: listingId },
+            data: { status: ListingStatus.REJECTED, rejectReason: reason },
+            include: { user: { select: { telegramUserId: true } } },
+        });
+
+        await this.createAuditLog(adminUserId, 'sheep_listing.reject', 'SheepListing', listingId, { reason });
+
+        if (listing.user?.telegramUserId) {
+            this.telegramNotify.notifyUserListingResult(
+                listing.user.telegramUserId.toString(),
+                'rejected',
+                { id: listing.id, title: listing.title },
+                reason,
+            ).catch(() => {});
+        }
+
+        const { user: _user, ...listingData } = listing;
+        return listingData;
+    }
+
+    async deleteSheepListing(listingId: string, adminUserId: string) {
+        await this.requireAdmin(adminUserId);
+
+        const listing = await this.prisma.sheepListing.findUnique({
+            where: { id: listingId },
+            select: { id: true, title: true },
+        });
+
+        if (!listing) throw new NotFoundException('Sheep listing not found');
+
+        await this.prisma.sheepListing.delete({ where: { id: listingId } });
+        await this.createAuditLog(adminUserId, 'sheep_listing.delete', 'SheepListing', listingId);
+
+        return { deleted: true };
     }
 
     // Users management

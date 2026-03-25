@@ -44,7 +44,8 @@ model User {
   lastLoginAt      DateTime?  @map("last_login_at")
 
   // Relations
-  listings         HorseListing[]
+  listings         CattleListing[]
+  sheepListings    SheepListing[]
   products         Product[]
   favorites        Favorite[]
   productFavorites ProductFavorite[]
@@ -87,10 +88,11 @@ model Region {
   nameRu   String?    @map("name_ru")
   slug     String     @unique
 
-  districts District[]
-  listings  HorseListing[]
-  events    Event[]
-  products  Product[]
+  districts    District[]
+  listings     CattleListing[]
+  sheepListings SheepListing[]
+  events       Event[]
+  products     Product[]
 
   @@map("regions")
 }
@@ -102,10 +104,11 @@ model District {
   nameRu   String? @map("name_ru")
   slug     String  @unique
 
-  region   Region  @relation(fields: [regionId], references: [id], onDelete: Cascade)
-  listings HorseListing[]
-  events   Event[]
-  products Product[]
+  region        Region  @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  listings      CattleListing[]
+  sheepListings SheepListing[]
+  events        Event[]
+  products      Product[]
 
   @@index([regionId])
   @@map("districts")
@@ -122,24 +125,22 @@ model Breed {
   description String?
   isActive    Boolean @default(true) @map("is_active")
 
-  listings    HorseListing[]
+  listings    CattleListing[]
 
   @@map("breeds")
 }
 
-enum HorsePurpose {
-  KOPKARI
-  SPORT
-  SAYR
-  ISHCHI
-  NASLCHILIK
+enum CattlePurpose {
   GOSHT
+  SUT
+  NASLCHILIK
+  ISHCHI
+  OMIXTA
 }
 
-enum HorseGender {
-  AYGIR
-  BIYA
-  AXTA
+enum CattleGender {
+  HOKIZ
+  SIGIR
 }
 
 enum ListingStatus {
@@ -161,18 +162,18 @@ enum Currency {
   USD
 }
 
-model HorseListing {
+model CattleListing {
   id            String        @id @default(uuid())
   userId        String        @map("user_id")
   title         String
   slug          String        @unique
   description   String?
-  
+
   regionId      String        @map("region_id")
   districtId    String?       @map("district_id")
-  
-  purpose       HorsePurpose?
-  gender        HorseGender?
+
+  purpose       CattlePurpose?
+  gender        CattleGender?
   breedId       String?       @map("breed_id")
   ageYears      Int?          @map("age_years")
   color         String?
@@ -205,7 +206,7 @@ model HorseListing {
   region        Region        @relation(fields: [regionId], references: [id])
   district      District?     @relation(fields: [districtId], references: [id])
   breed         Breed?        @relation(fields: [breedId], references: [id])
-  media         HorseMedia[]
+  media         CattleMedia[]
   favorites     Favorite[]
   viewLogs      ViewLog[]
   payments      Payment[]
@@ -214,7 +215,7 @@ model HorseListing {
   @@index([regionId])
   @@index([status])
   @@index([publishedAt])
-  @@map("horse_listings")
+  @@map("cattle_listings")
 }
 
 enum MediaType {
@@ -222,7 +223,7 @@ enum MediaType {
   VIDEO
 }
 
-model HorseMedia {
+model CattleMedia {
   id        String    @id @default(uuid())
   listingId String    @map("listing_id")
   type      MediaType @default(IMAGE)
@@ -231,10 +232,10 @@ model HorseMedia {
   sortOrder Int       @default(0) @map("sort_order")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  listing   HorseListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing   CattleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@index([listingId])
-  @@map("horse_media")
+  @@map("cattle_media")
 }
 
 // ============================================
@@ -248,7 +249,7 @@ model Favorite {
   createdAt DateTime @default(now()) @map("created_at")
 
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing   HorseListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing   CattleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
   @@index([userId])
@@ -262,7 +263,7 @@ model ViewLog {
   sessionId     String?  @map("session_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  listing       HorseListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing       CattleListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([listingId])
@@ -469,6 +470,7 @@ enum PaymentPackage {
 model Payment {
   id                  String          @id @default(uuid())
   listingId           String?         @map("listing_id")
+  sheepListingId      String?         @map("sheep_listing_id")
   productId           String?         @map("product_id")
   userId              String          @map("user_id")
   packageType         PaymentPackage? @map("package_type")
@@ -484,11 +486,13 @@ model Payment {
   createdAt           DateTime        @default(now()) @map("created_at")
   updatedAt           DateTime        @updatedAt @map("updated_at")
 
-  listing             HorseListing?   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing             CattleListing?  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sheepListing        SheepListing?   @relation(fields: [sheepListingId], references: [id], onDelete: Cascade)
   product             Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
   user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([listingId])
+  @@index([sheepListingId])
   @@index([productId])
   @@index([userId])
   @@index([status])
@@ -525,4 +529,105 @@ model AuditLog {
   @@index([actorUserId])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+// ============================================
+// SHEEP & GOAT LISTINGS
+// ============================================
+
+enum SheepType {
+  QOY
+  ECHKI
+}
+
+enum SheepPurpose {
+  GOSHT
+  JUN
+  SUT
+  NASLCHILIK
+  OMIXTA
+}
+
+enum SheepGender {
+  URGOCHI
+  ERKAK
+}
+
+model SheepBreed {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true) @map("is_active")
+  animalType  String  @default("QOY") @map("animal_type")
+
+  listings    SheepListing[]
+
+  @@map("sheep_breeds")
+}
+
+model SheepListing {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  title         String
+  slug          String        @unique
+  description   String?
+
+  animalType    SheepType     @default(QOY) @map("animal_type")
+  regionId      String        @map("region_id")
+  districtId    String?       @map("district_id")
+
+  purpose       SheepPurpose?
+  gender        SheepGender?
+  breedId       String?       @map("breed_id")
+  ageMonths     Int?          @map("age_months")
+
+  priceAmount   Decimal       @map("price_amount") @db.Decimal(15, 2)
+  priceCurrency Currency      @default(UZS) @map("price_currency")
+
+  hasVaccine    Boolean?      @map("has_vaccine")
+  hasVideo      Boolean       @default(false) @map("has_video")
+
+  status        ListingStatus @default(DRAFT)
+  isPaid        Boolean       @default(false) @map("is_paid")
+  isTop         Boolean       @default(false) @map("is_top")
+  isPremium     Boolean       @default(false) @map("is_premium")
+  rejectReason  String?       @map("reject_reason")
+  saleSource    SaleSource?   @map("sale_source")
+
+  viewCount     Int           @default(0) @map("view_count")
+  favoriteCount Int           @default(0) @map("favorite_count")
+
+  publishedAt   DateTime?     @map("published_at")
+  expiresAt     DateTime?     @map("expires_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  region        Region        @relation(fields: [regionId], references: [id])
+  district      District?     @relation(fields: [districtId], references: [id])
+  breed         SheepBreed?   @relation(fields: [breedId], references: [id])
+  media         SheepMedia[]
+  payments      Payment[]
+
+  @@index([userId])
+  @@index([regionId])
+  @@index([status])
+  @@index([publishedAt])
+  @@map("sheep_listings")
+}
+
+model SheepMedia {
+  id        String       @id @default(uuid())
+  listingId String       @map("listing_id")
+  type      MediaType    @default(IMAGE)
+  url       String
+  thumbUrl  String?      @map("thumb_url")
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  listing   SheepListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("sheep_media")
 }

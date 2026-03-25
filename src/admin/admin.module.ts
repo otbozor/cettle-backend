@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminListingsController } from './admin-listings.controller';
+import { AdminSheepListingsController } from './admin-sheep-listings.controller';
 import { AdminBlogController } from './admin-blog.controller';
 import { AdminProductsController } from './admin-products.controller';
 import { AdminEventsController } from './admin-events.controller';
@@ -21,6 +22,7 @@ import { TelegramModule } from '../telegram/telegram.module';
         AdminProductsController,
         AdminEventsController,
         AdminFinanceController,
+        AdminSheepListingsController,
     ],
     providers: [AdminService, AdminProductsService],
     exports: [AdminService],

@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { HorsePurpose, HorseGender, Currency } from '@prisma/client';
+import { CattlePurpose, CattleGender, Currency } from '@prisma/client';
 
 export class CreateListingDto {
     @ApiProperty({ description: 'Listing title' })
@@ -30,15 +30,15 @@ export class CreateListingDto {
     @IsUUID()
     districtId?: string;
 
-    @ApiPropertyOptional({ enum: HorsePurpose })
+    @ApiPropertyOptional({ enum: CattlePurpose })
     @IsOptional()
-    @IsEnum(HorsePurpose)
-    purpose?: HorsePurpose;
+    @IsEnum(CattlePurpose)
+    purpose?: CattlePurpose;
 
-    @ApiPropertyOptional({ enum: HorseGender })
+    @ApiPropertyOptional({ enum: CattleGender })
     @IsOptional()
-    @IsEnum(HorseGender)
-    gender?: HorseGender;
+    @IsEnum(CattleGender)
+    gender?: CattleGender;
 
     @ApiPropertyOptional({ description: 'Breed ID' })
     @IsOptional()
@@ -95,15 +95,15 @@ export class ListingsFilterDto {
     @IsUUID()
     breedId?: string;
 
-    @ApiPropertyOptional({ enum: HorsePurpose })
+    @ApiPropertyOptional({ enum: CattlePurpose })
     @IsOptional()
-    @IsEnum(HorsePurpose)
-    purpose?: HorsePurpose;
+    @IsEnum(CattlePurpose)
+    purpose?: CattlePurpose;
 
-    @ApiPropertyOptional({ enum: HorseGender })
+    @ApiPropertyOptional({ enum: CattleGender })
     @IsOptional()
-    @IsEnum(HorseGender)
-    gender?: HorseGender;
+    @IsEnum(CattleGender)
+    gender?: CattleGender;
 
     @ApiPropertyOptional()
     @IsOptional()

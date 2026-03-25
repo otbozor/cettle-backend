@@ -59,8 +59,8 @@ export class AuthService {
         const sessionId = uuidv4();
         const botUsername = this.configService.get<string>('TELEGRAM_BOT_USERNAME');
 
-        // Clean expired sessions
-        await this.cleanExpiredSessions();
+        // Clean expired sessions (fire-and-forget, non-critical)
+        this.cleanExpiredSessions().catch(() => {});
 
         // Store session in DB (expires in 10 minutes)
         await this.prisma.telegramAuthSession.create({
@@ -377,8 +377,12 @@ export class AuthService {
 
     // Clean expired sessions from DB
     private async cleanExpiredSessions(): Promise<void> {
-        await this.prisma.telegramAuthSession.deleteMany({
-            where: { expiresAt: { lt: new Date() } },
-        });
+        try {
+            await this.prisma.telegramAuthSession.deleteMany({
+                where: { expiresAt: { lt: new Date() } },
+            });
+        } catch {
+            // Ignore cleanup errors — not critical
+        }
     }
 }

@@ -25,7 +25,7 @@ export class ListingsExpiryService {
             let cursor: string | undefined;
 
             while (true) {
-                const batch = await this.prisma.horseListing.findMany({
+                const batch = await this.prisma.cattleListing.findMany({
                     where: {
                         status: 'APPROVED',
                         expiresAt: { lt: now },
@@ -44,7 +44,7 @@ export class ListingsExpiryService {
 
                 const ids = batch.map(l => l.id);
 
-                await this.prisma.horseListing.updateMany({
+                await this.prisma.cattleListing.updateMany({
                     where: { id: { in: ids } },
                     data: { status: 'EXPIRED' },
                 });
@@ -75,7 +75,7 @@ export class ListingsExpiryService {
             }
 
             // 2. Boost muddati tugasa → isPaid va isTop ni reset qilish
-            const boostResult = await this.prisma.horseListing.updateMany({
+            const boostResult = await this.prisma.cattleListing.updateMany({
                 where: {
                     isPaid: true,
                     boostExpiresAt: { lt: now },

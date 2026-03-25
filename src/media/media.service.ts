@@ -39,7 +39,7 @@ export class MediaService {
         folder: 'listings' | 'blog' | 'events' | 'avatars',
     ): Promise<{ url: string; publicId: string; type: 'IMAGE' | 'VIDEO' }> {
         // Validate file type
-        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
+        const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
         if (!allowedMimes.includes(file.mimetype)) {
             throw new BadRequestException('Invalid file type. Only JPEG, PNG, WebP, MP4, WebM allowed');
         }
@@ -64,7 +64,7 @@ export class MediaService {
             const result = await new Promise<any>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
                     {
-                        folder: `horse-marketplace/${folder}`,
+                        folder: `cattle-marketplace/${folder}`,
                         resource_type: resourceType,
                         transformation: isVideo ? undefined : [
                             { width: 1920, height: 1080, crop: 'limit', quality: 'auto' },
@@ -117,12 +117,12 @@ export class MediaService {
         media: Array<{ url: string; type: 'IMAGE' | 'VIDEO'; sortOrder: number }>,
     ) {
         // Delete existing media first
-        await this.prisma.horseMedia.deleteMany({
+        await this.prisma.cattleMedia.deleteMany({
             where: { listingId },
         });
 
         // Create new media entries
-        return this.prisma.horseMedia.createMany({
+        return this.prisma.cattleMedia.createMany({
             data: media.map((m, index) => ({
                 listingId,
                 url: m.url,
@@ -134,9 +134,25 @@ export class MediaService {
     }
 
     async getListingMedia(listingId: string) {
-        return this.prisma.horseMedia.findMany({
+        return this.prisma.cattleMedia.findMany({
             where: { listingId },
             orderBy: { sortOrder: 'asc' },
+        });
+    }
+
+    async attachMediaToSheepListing(
+        listingId: string,
+        media: Array<{ url: string; type: 'IMAGE' | 'VIDEO'; sortOrder: number }>,
+    ) {
+        await this.prisma.sheepMedia.deleteMany({ where: { listingId } });
+        return this.prisma.sheepMedia.createMany({
+            data: media.map((m, index) => ({
+                listingId,
+                url: m.url,
+                thumbUrl: this.generateThumbUrl(m.url),
+                type: m.type,
+                sortOrder: m.sortOrder ?? index,
+            })),
         });
     }
 

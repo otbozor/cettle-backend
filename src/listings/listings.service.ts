@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramChannelService } from '../telegram/telegram-channel.service';
-import { Prisma, ListingStatus, SaleSource, HorseListing } from '@prisma/client';
+import { Prisma, ListingStatus, SaleSource, CattleListing } from '@prisma/client';
 import slugify from 'slugify';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateListingDto, UpdateListingDto, ListingsFilterDto } from './dto/listing.dto';
@@ -14,7 +14,7 @@ export class ListingsService {
     ) { }
 
     async findAll(filter: ListingsFilterDto) {
-        const where: Prisma.HorseListingWhereInput = {
+        const where: Prisma.CattleListingWhereInput = {
             status: ListingStatus.APPROVED,
         };
 
@@ -53,7 +53,7 @@ export class ListingsService {
         }
 
         // Sorting — paid/top listings always first, then user-selected sort
-        const orderBy: Prisma.HorseListingOrderByWithRelationInput[] = [
+        const orderBy: Prisma.CattleListingOrderByWithRelationInput[] = [
             { isPaid: 'desc' },
             { isTop: 'desc' },
         ];
@@ -80,7 +80,7 @@ export class ListingsService {
         const skip = (page - 1) * limit;
 
         const [listings, total] = await Promise.all([
-            this.prisma.horseListing.findMany({
+            this.prisma.cattleListing.findMany({
                 where,
                 orderBy,
                 skip,
@@ -97,7 +97,7 @@ export class ListingsService {
                     },
                 },
             }),
-            this.prisma.horseListing.count({ where }),
+            this.prisma.cattleListing.count({ where }),
         ]);
 
         return {
@@ -112,7 +112,7 @@ export class ListingsService {
     }
 
     async findById(id: string) {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
             include: {
                 region: true,
@@ -143,7 +143,7 @@ export class ListingsService {
     }
 
     async findBySlug(slug: string) {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { slug },
             include: {
                 region: true,
@@ -174,7 +174,7 @@ export class ListingsService {
     }
 
     async findSimilar(id: string, limit = 6) {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
             select: { regionId: true, purpose: true, breedId: true, priceAmount: true },
         });
@@ -183,7 +183,7 @@ export class ListingsService {
             return [];
         }
 
-        return this.prisma.horseListing.findMany({
+        return this.prisma.cattleListing.findMany({
             where: {
                 id: { not: id },
                 status: ListingStatus.APPROVED,
@@ -232,18 +232,18 @@ export class ListingsService {
         });
 
         // Increment counter
-        await this.prisma.horseListing.update({
+        await this.prisma.cattleListing.update({
             where: { id },
             data: { viewCount: { increment: 1 } },
         });
     }
 
     // User's own listings
-    async createDraft(userId: string, dto: CreateListingDto): Promise<HorseListing> {
+    async createDraft(userId: string, dto: CreateListingDto): Promise<CattleListing> {
         const baseSlug = slugify(dto.title, { lower: true, strict: true });
         const slug = `${baseSlug}-${uuidv4().substring(0, 8)}`;
 
-        return this.prisma.horseListing.create({
+        return this.prisma.cattleListing.create({
             data: {
                 userId,
                 title: dto.title,
@@ -265,8 +265,8 @@ export class ListingsService {
         });
     }
 
-    async updateDraft(userId: string, id: string, dto: UpdateListingDto): Promise<HorseListing> {
-        const listing = await this.prisma.horseListing.findUnique({
+    async updateDraft(userId: string, id: string, dto: UpdateListingDto): Promise<CattleListing> {
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
         });
 
@@ -291,7 +291,7 @@ export class ListingsService {
             throw new ForbiddenException('Can only edit draft, rejected, expired, archived, pending or approved listings');
         }
 
-        return this.prisma.horseListing.update({
+        return this.prisma.cattleListing.update({
             where: { id },
             data: {
                 ...dto,
@@ -300,8 +300,8 @@ export class ListingsService {
         });
     }
 
-    async submitForReview(userId: string, id: string): Promise<HorseListing> {
-        const listing = await this.prisma.horseListing.findUnique({
+    async submitForReview(userId: string, id: string): Promise<CattleListing> {
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
             include: { media: true },
         });
@@ -329,7 +329,7 @@ export class ListingsService {
 
         if (listing.isPaid) {
             // Already paid (re-submitting after edit) — no credit deduction
-            await this.prisma.horseListing.update({
+            await this.prisma.cattleListing.update({
                 where: { id },
                 data: {
                     status: ListingStatus.PENDING,
@@ -356,7 +356,7 @@ export class ListingsService {
                     where: { id: userId },
                     data: { listingCredits: { decrement: 1 } },
                 }),
-                this.prisma.horseListing.update({
+                this.prisma.cattleListing.update({
                     where: { id },
                     data: {
                         status: ListingStatus.PENDING,
@@ -379,11 +379,11 @@ export class ListingsService {
             userName: submitter?.displayName,
         }).catch(() => {});
 
-        return this.prisma.horseListing.findUnique({ where: { id } }) as Promise<HorseListing>;
+        return this.prisma.cattleListing.findUnique({ where: { id } }) as Promise<CattleListing>;
     }
 
     async getMyListingById(userId: string, id: string) {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
             include: {
                 region: true,
@@ -407,10 +407,10 @@ export class ListingsService {
     }
 
     async getMyListings(userId: string, status?: ListingStatus) {
-        const where: Prisma.HorseListingWhereInput = { userId };
+        const where: Prisma.CattleListingWhereInput = { userId };
         if (status) where.status = status;
 
-        return this.prisma.horseListing.findMany({
+        return this.prisma.cattleListing.findMany({
             where,
             orderBy: { updatedAt: 'desc' },
             include: {
@@ -431,7 +431,7 @@ export class ListingsService {
     }
 
     async archiveListing(userId: string, id: string, saleSource?: SaleSource): Promise<void> {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
         });
 
@@ -443,7 +443,7 @@ export class ListingsService {
             throw new ForbiddenException('You can only archive your own listings');
         }
 
-        await this.prisma.horseListing.update({
+        await this.prisma.cattleListing.update({
             where: { id },
             data: {
                 status: ListingStatus.ARCHIVED,
@@ -453,7 +453,7 @@ export class ListingsService {
     }
 
     async deleteListing(userId: string, id: string): Promise<void> {
-        const listing = await this.prisma.horseListing.findUnique({
+        const listing = await this.prisma.cattleListing.findUnique({
             where: { id },
         });
 
@@ -469,7 +469,7 @@ export class ListingsService {
             throw new ForbiddenException('Faqat nofaol (arxivlangan) e\'lonni o\'chirish mumkin');
         }
 
-        await this.prisma.horseListing.delete({ where: { id } });
+        await this.prisma.cattleListing.delete({ where: { id } });
     }
 
     // Favorites
@@ -478,7 +478,7 @@ export class ListingsService {
             data: { userId, listingId },
         });
 
-        await this.prisma.horseListing.update({
+        await this.prisma.cattleListing.update({
             where: { id: listingId },
             data: { favoriteCount: { increment: 1 } },
         });
@@ -489,7 +489,7 @@ export class ListingsService {
             where: { userId_listingId: { userId, listingId } },
         });
 
-        await this.prisma.horseListing.update({
+        await this.prisma.cattleListing.update({
             where: { id: listingId },
             data: { favoriteCount: { decrement: 1 } },
         });
@@ -525,7 +525,7 @@ export class ListingsService {
 
     // Featured listings for homepage
     async getFeatured(limit = 50) {
-        return this.prisma.horseListing.findMany({
+        return this.prisma.cattleListing.findMany({
             where: { status: ListingStatus.APPROVED, isPremium: true },
             orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
             take: limit,

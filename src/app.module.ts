@@ -15,6 +15,8 @@ import { EventsModule } from './events/events.module';
 import { BlogModule } from './blog/blog.module';
 import { ProductsModule } from './products/products.module';
 import { PaymentModule } from './payments/payment.module';
+import { SheepListingsModule } from './sheep-listings/sheep-listings.module';
+import { SheepBreedsModule } from './sheep-breeds/sheep-breeds.module';
 
 @Module({
     imports: [
@@ -55,6 +57,10 @@ import { PaymentModule } from './payments/payment.module';
 
         // Payments
         PaymentModule,
+
+        // Sheep & Goat
+        SheepListingsModule,
+        SheepBreedsModule,
     ],
 })
 export class AppModule { }

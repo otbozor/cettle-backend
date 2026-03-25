@@ -67,7 +67,7 @@ export class PaymentService {
 
     // Create reactivation invoice for EXPIRED listings
     async createReactivationInvoice(userId: string, listingId: string) {
-        const listing = await this.prisma.horseListing.findUnique({ where: { id: listingId } });
+        const listing = await this.prisma.cattleListing.findUnique({ where: { id: listingId } });
 
         if (!listing) throw new NotFoundException('Listing not found');
         if (listing.userId !== userId) throw new BadRequestException('Not your listing');
@@ -102,7 +102,7 @@ export class PaymentService {
 
     // Create invoice and return Click payment URL
     async createInvoice(userId: string, listingId: string, packageType: PaymentPackage) {
-        const listing = await this.prisma.horseListing.findUnique({ where: { id: listingId } });
+        const listing = await this.prisma.cattleListing.findUnique({ where: { id: listingId } });
 
         if (!listing) throw new NotFoundException('Listing not found');
         if (listing.userId !== userId) throw new BadRequestException('Not your listing');
@@ -164,7 +164,7 @@ export class PaymentService {
 
     // Create invoice for listing credits bundle purchase
     async createListingBundleInvoice(userId: string, listingId: string, bundleSize: 5 | 10 | 20) {
-        const listing = await this.prisma.horseListing.findUnique({ where: { id: listingId } });
+        const listing = await this.prisma.cattleListing.findUnique({ where: { id: listingId } });
 
         if (!listing) throw new NotFoundException('E\'lon topilmadi');
         if (listing.userId !== userId) throw new BadRequestException('Bu sizning e\'loningiz emas');
@@ -425,7 +425,7 @@ export class PaymentService {
                     data: { listingCredits: { increment: bundleSize - 1 } },
                 }),
                 // Auto-submit the listing that triggered the purchase
-                this.prisma.horseListing.update({
+                this.prisma.cattleListing.update({
                     where: { id: payment.listingId },
                     data: {
                         status: ListingStatus.PENDING,
@@ -448,7 +448,7 @@ export class PaymentService {
                         clickPaydocId: click_paydoc_id,
                     },
                 }),
-                this.prisma.horseListing.update({
+                this.prisma.cattleListing.update({
                     where: { id: payment.listingId },
                     data: { isPaid: true, isTop: true, isPremium, publishedAt: new Date(), boostExpiresAt },
                 }),
@@ -456,7 +456,7 @@ export class PaymentService {
             console.log('✅ Listing boost payment completed:', payment.listingId);
 
             // Post to Telegram channel (fire-and-forget, does not affect payment response)
-            const listingForChannel = await this.prisma.horseListing.findUnique({
+            const listingForChannel = await this.prisma.cattleListing.findUnique({
                 where: { id: payment.listingId },
                 include: {
                     region: { select: { nameUz: true } },
@@ -475,7 +475,7 @@ export class PaymentService {
             }
         } else if (payment.listingId && !payment.packageType) {
             // Reactivation (EXPIRED) or Publication fee (DRAFT) — both send to PENDING
-            const listingForUpdate = await this.prisma.horseListing.findUnique({
+            const listingForUpdate = await this.prisma.cattleListing.findUnique({
                 where: { id: payment.listingId },
                 select: { status: true },
             });
@@ -493,7 +493,7 @@ export class PaymentService {
                         clickPaydocId: click_paydoc_id,
                     },
                 }),
-                this.prisma.horseListing.update({
+                this.prisma.cattleListing.update({
                     where: { id: payment.listingId },
                     data: updateData,
                 }),

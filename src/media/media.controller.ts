@@ -63,6 +63,7 @@ export class MediaController {
     async attachMedia(
         @Body() body: {
             listingId?: string;
+            sheepListingId?: string;
             productId?: string;
             media: Array<{ url: string; type?: 'IMAGE' | 'VIDEO'; sortOrder: number }>;
         },
@@ -70,11 +71,14 @@ export class MediaController {
     ): Promise<ApiResponse<null>> {
         if (body.productId) {
             await this.mediaService.attachMediaToProduct(body.productId, body.media);
+        } else if (body.sheepListingId) {
+            const media = body.media.map(m => ({ ...m, type: m.type ?? 'IMAGE' as const }));
+            await this.mediaService.attachMediaToSheepListing(body.sheepListingId, media);
         } else if (body.listingId) {
             const media = body.media.map(m => ({ ...m, type: m.type ?? 'IMAGE' as const }));
             await this.mediaService.attachMediaToListing(body.listingId, media);
         } else {
-            throw new BadRequestException('listingId yoki productId kerak');
+            throw new BadRequestException('listingId, sheepListingId yoki productId kerak');
         }
         return {
             success: true,

@@ -335,22 +335,22 @@ async function main() {
 
     console.log('✅ Regions and districts seeded');
 
-    // Create breeds
+    // Create breeds (qoramol zotlari)
     const breeds = [
-        { name: 'Qorabayir', slug: 'qorabayir', description: 'O\'zbekistonning an\'anaviy ot zoti' },
-        { name: 'Qorabo\'g\'oz', slug: 'qorabogoz', description: 'Kuchli va chidamli ot zoti' },
-        { name: 'Lokayi', slug: 'lokayi', description: 'Tog\' sharoitlariga moslashgan zot' },
-        { name: 'Ko\'pakcha', slug: 'kopakcha', description: 'Kichik bo\'yli, chaqqon otlar' },
-        { name: 'Arab', slug: 'arab', description: 'Arabiston yarim orolidan kelgan zot' },
-        { name: 'Axaltekin', slug: 'axaltekin', description: 'Turkmanistondan kelgan nozik otlar' },
-        { name: 'Don', slug: 'don', description: 'Rossiya Don daryosi bo\'yidan' },
-        { name: 'Budyonnovsk', slug: 'budyonnovsk', description: 'Sport uchun yetishtirilgan zot' },
-        { name: 'Orlov', slug: 'orlov', description: 'Rossiya trotter zoti' },
-        { name: 'Aralash', slug: 'aralash', description: 'Aralash zot' },
-        { name: 'Qirg\'iz', slug: 'qirgiz', description: 'Qirg\'iziston ot zoti' },
-        { name: 'Qozoq', slug: 'qozoq', description: 'Qozog\'iston ot zoti' },
+        { name: 'Mahalliy zot', slug: 'mahalliy', description: "O'zbekiston mahalliy qoramol zoti" },
+        { name: 'Qorabosh', slug: 'qorabosh', description: 'Kuchli va sut beruvchi zot' },
+        { name: 'Hereford', slug: 'hereford', description: "Go'sht uchun mashhur xorijiy zot" },
+        { name: 'Angus', slug: 'angus', description: "Yuqori sifatli go'sht zoti" },
+        { name: 'Simental', slug: 'simental', description: "Go'sht-sut kombinatsiyali zot" },
+        { name: 'Holshteyn', slug: 'holshteyn', description: 'Yuqori sut mahsuldorligi' },
+        { name: "Qozoq oq boshi", slug: 'qozoq-oq-boshi', description: "Qozog'iston go'sht zoti" },
+        { name: 'Qalmoq', slug: 'qalmoq', description: "Chidamli va ko'p go'shtli zot" },
+        { name: 'Limuzin', slug: 'limuzin', description: "Frantsuz go'sht zoti" },
+        { name: "Sharo'le", slug: 'sharolle', description: "Yirik tanali go'sht zoti" },
+        { name: 'Aberdin-Angus', slug: 'aberdin-angus', description: "Shotlandiya go'sht zoti" },
+        { name: 'Jersey', slug: 'jersey', description: "Yog'li sut beruvchi zot" },
+        { name: 'Aralash zot', slug: 'aralash', description: 'Aralash zot' },
         { name: 'Boshqa', slug: 'boshqa', description: 'Boshqa zot' },
-        { name: 'Noma\'lum', slug: 'nomalum', description: 'Zoti aniqlanmagan' },
     ];
 
     for (const breed of breeds) {
@@ -362,6 +362,34 @@ async function main() {
     }
 
     console.log('✅ Breeds seeded');
+
+    // Create sheep & goat breeds (qo'y va echki zotlari)
+    const sheepBreeds = [
+        { name: "Qoraqo'l", slug: 'qarakul', description: "O'zbekiston mahalliy qo'y zoti, jun uchun", animalType: 'QOY' },
+        { name: "Hissor", slug: 'hissor', description: "Tojikiston go'sht-yog' zoti", animalType: 'QOY' },
+        { name: "Jyddi", slug: 'jyddi', description: "Go'sht uchun mahalliy zot", animalType: 'QOY' },
+        { name: "Romanov", slug: 'romanov', description: "Ko'p tug'adigan rus zoti", animalType: 'QOY' },
+        { name: "Edilbay", slug: 'edilbay', description: "Qozog'iston yog'-go'sht zoti", animalType: 'QOY' },
+        { name: "Merinos", slug: 'merinos', description: "Nozik jun beruvchi zot", animalType: 'QOY' },
+        { name: "Dorper", slug: 'dorper', description: "Janubiy Afrika go'sht zoti", animalType: 'QOY' },
+        { name: "Aralash qo'y zoti", slug: 'aralash-qoy', description: "Aralash zot", animalType: 'QOY' },
+        { name: "Boshqa qo'y zoti", slug: 'boshqa-qoy', description: "Boshqa zot", animalType: 'QOY' },
+        { name: "Zanen echki", slug: 'zanen', description: "Ko'p sut beruvchi Shveytsariya echkisi", animalType: 'ECHKI' },
+        { name: "Toggenburg", slug: 'toggenburg', description: "Sut echkisi", animalType: 'ECHKI' },
+        { name: "Mahalliy echki", slug: 'mahalliy-echki', description: "O'zbekiston mahalliy echkisi", animalType: 'ECHKI' },
+        { name: "Buyr echki", slug: 'buyr', description: "Go'sht echkisi", animalType: 'ECHKI' },
+        { name: "Boshqa echki zoti", slug: 'boshqa-echki', description: "Boshqa zot", animalType: 'ECHKI' },
+    ];
+
+    for (const breed of sheepBreeds) {
+        await prisma.sheepBreed.upsert({
+            where: { slug: breed.slug },
+            update: breed,
+            create: breed,
+        });
+    }
+
+    console.log('✅ Sheep & goat breeds seeded');
 
     // Create default Admin user with credentials from .env
     console.log('Creating default Admin user...');
