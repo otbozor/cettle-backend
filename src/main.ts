@@ -33,10 +33,12 @@ async function bootstrap() {
         'http://localhost:3001',
         'https://horse-frontend-khaki.vercel.app',
         'https://horse-frontend-black.vercel.app',
+        'https://cettle-frontend-delta.vercel.app',
         'https://www.otbozor.uz',
         'https://otbozor.uz',
         'https://test.otbozor.uz',
         process.env.APP_URL,
+        process.env.FRONTEND_URL,
         ...(process.env.CORS_ORIGIN?.split(',').map(s => s.trim()) || []),
     ].filter(Boolean);
 
