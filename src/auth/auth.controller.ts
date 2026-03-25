@@ -75,7 +75,7 @@ interface UserMeResponse {
 @ApiTags('Autentifikatsiya')
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+    constructor(private readonly authService: AuthService) { }
 
     @Post('admin/login')
     @HttpCode(HttpStatus.OK)
@@ -177,7 +177,7 @@ export class AuthController {
                 success: true,
                 data: {
                     sessionId: '550e8400-e29b-41d4-a716-446655440000',
-                    botDeepLink: 'https://t.me/otbozor_bot?start=550e8400-e29b-41d4-a716-446655440000',
+                    botDeepLink: 'https://t.me/muruvvat1_bot?start=550e8400-e29b-41d4-a716-446655440000',
                     expiresIn: 600,
                 },
                 message: 'Telegram auth session created. Open the bot link to continue.',
