@@ -68,10 +68,11 @@ export class TelegramChannelService {
                 `${badge}\n` +
                 `━━━━━━━━━━━━━━━━━\n\n` +
                 `🐴 <b>${this.escapeHtml(listing.title)}</b>\n\n` +
-                `💰 <b>${price}</b>\n` +
-                (location ? `📍 ${location}\n` : '') +
-                (detailParts.length ? `🔎 ${detailParts.join(' · ')}\n` : '') +
-                (phone ? `📞 ${phone}\n` : '') +
+                `💰 <b>Narxi:</b> ${price}\n` +
+                (location ? `📍 <b>Manzil:</b> ${location}\n` : '') +
+                (breed ? `🔎 <b>Zoti:</b> ${breed}\n` : '') +
+                (age ? `📅 <b>Yoshi:</b> ${age}\n` : '') +
+                (phone ? `📞 <b>Aloqa:</b> ${phone}\n` : '') +
                 `\n<a href="${link}">🔗 Batafsil ko'rish →</a>\n\n` +
                 `#otbozor #ot #yilqi`;
 
@@ -147,12 +148,12 @@ export class TelegramChannelService {
             const myListingsLink = `${this.frontendUrl}/profil/elonlarim`;
             const text = action === 'approved'
                 ? `✅ <b>E'loningiz tasdiqlandi!</b>\n\n` +
-                  `🐴 ${this.escapeHtml(listing.title)}\n\n` +
-                  `<a href="${myListingsLink}">Mening e'lonlarim →</a>`
+                `🐴 ${this.escapeHtml(listing.title)}\n\n` +
+                `<a href="${myListingsLink}">Mening e'lonlarim →</a>`
                 : `❌ <b>E'loningiz rad etildi</b>\n\n` +
-                  `🐴 ${this.escapeHtml(listing.title)}\n` +
-                  (rejectReason ? `\n📝 Sabab: ${this.escapeHtml(rejectReason)}\n` : '') +
-                  `\n<a href="${myListingsLink}">Mening e'lonlarim →</a>`;
+                `🐴 ${this.escapeHtml(listing.title)}\n` +
+                (rejectReason ? `\n📝 Sabab: ${this.escapeHtml(rejectReason)}\n` : '') +
+                `\n<a href="${myListingsLink}">Mening e'lonlarim →</a>`;
 
             await this.bot.telegram.sendMessage(telegramUserId, text, { parse_mode: 'HTML' });
         } catch (error) {
